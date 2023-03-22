@@ -24,6 +24,12 @@ struct DeveloperSettingsView: View {
 
                     Toggle("Send device token to localhost", isOn: $settings.send_device_token_to_localhost)
                         .toggleStyle(.switch)
+                    
+                    Toggle("Enable experimental Purple API support", isOn: $settings.enable_experimental_purple_api)
+                        .toggleStyle(.switch)
+
+                    Toggle("Purple API localhost test mode", isOn: $settings.purple_api_local_test_mode)
+                        .toggleStyle(.switch)
                 }
             }
         }
