@@ -10,12 +10,13 @@ import SwiftUI
 /// Profile Name used when displaying an event in the timeline
 @MainActor
 struct EventProfileName: View {
-    let damus_state: DamusState
+    var damus_state: DamusState
     let pubkey: Pubkey
 
     @State var display_name: DisplayName?
     @State var nip05: NIP05?
     @State var donation: Int?
+    @State var is_purple_user: Bool
     
     let size: EventViewKind
     
@@ -25,6 +26,7 @@ struct EventProfileName: View {
         self.size = size
         let donation = damus.ndb.lookup_profile(pubkey).map({ p in p?.profile?.damus_donation }).value
         self._donation = State(wrappedValue: donation)
+        is_purple_user = false
     }
     
     var friend_type: FriendType? {
@@ -47,7 +49,11 @@ struct EventProfileName: View {
         return profile.reactions == false
     }
     
-    var supporter: Int? {
+    func supporter_percentage() -> Int? {
+        if is_purple_user {
+            return 100
+        }
+        
         guard let donation, donation > 0
         else {
             return nil
@@ -92,7 +98,7 @@ struct EventProfileName: View {
                     .frame(width: 14, height: 14)
             }
             
-            if let supporter {
+            if let supporter = self.supporter_percentage() {
                 SupporterBadge(percent: supporter)
             }
         }
@@ -119,6 +125,11 @@ struct EventProfileName: View {
                 donation = profile.damus_donation
             }
         }
+        .onAppear(perform: {
+            Task {
+                is_purple_user = await damus_state.purple.is_profile_subscribed_to_purple(pubkey: self.pubkey) ?? false
+            }
+        })
     }
 }
 

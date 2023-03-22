@@ -201,6 +201,9 @@ class UserSettingsStore: ObservableObject {
     @Setting(key: "send_device_token_to_localhost", default_value: false)
     var send_device_token_to_localhost: Bool
     
+    @Setting(key: "purple_api_local_test_mode", default_value: false)
+    var purple_api_local_test_mode: Bool
+
     @Setting(key: "emoji_reactions", default_value: default_emoji_reactions)
     var emoji_reactions: [String]
     
