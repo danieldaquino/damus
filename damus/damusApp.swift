@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import secp256k1
 
 @main
 struct damusApp: App {
@@ -68,13 +69,63 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         let token = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
         
         print("Received device token: \(token)")
-
-        guard let pubkey = keypair?.pubkey else {
+        
+        guard let keypair else {
             return
         }
 
+        let pubkey = keypair.pubkey
+        guard let privkey = keypair.privkey else {
+            return
+        }
+        
+        guard let ctx = secp256k1_context_create(UInt32(SECP256K1_CONTEXT_SIGN)) else {
+            return
+        }
+        // Hash and sign deviceToken + current date in ISO format using secp256k1
+        let dateFormatter = ISO8601DateFormatter()
+        let currentDate = dateFormatter.string(from: Date())
+        let message = "\(token)\(currentDate)"
+        guard let messageData = message.data(using: .utf8) else {
+            return
+        }
+        let hash = SHA256.hash(data: messageData)
+        var signature = secp256k1_ecdsa_signature()
+        let result = secp256k1_ecdsa_sign(
+            ctx,
+            &signature,
+            hash.bytes,
+            privkey.bytes,
+            nil,
+            nil
+        )
+        if result != 1 {
+            print("Failed to sign device token")
+            return
+        }
+        
+        var pk_bytes = pubkey.bytes
+        pk_bytes.insert(2, at: 0)
+        
+        var special_formatted_pubkey: secp256k1_pubkey = secp256k1_pubkey()
+        let conversion_result = secp256k1_ec_pubkey_parse(
+            secp256k1.Context.raw,
+            &special_formatted_pubkey,
+            pk_bytes,
+            pk_bytes.count)
+        let verification_result = secp256k1_ecdsa_verify(ctx, &signature, hash.bytes, &special_formatted_pubkey)
+        
+        print("verification Result: \(verification_result)")
+        let signatureData = signature.dataValue
+        print("Signature (base64): \(signatureData.base64EncodedString())")
+
         // Send those as JSON to the server
-        let json: [String: Any] = ["deviceToken": token, "pubkey": pubkey.hex()]
+        let json: [String: Any] = [
+            "deviceToken": token,
+            "pubkey": pubkey.hex(),
+            "timestamp": currentDate,
+            "signature": signatureData.base64EncodedString()
+        ]
 
         // create post request
         let url = URL(string: "http://localhost:8000/user-info")!
