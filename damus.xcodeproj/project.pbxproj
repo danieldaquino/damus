@@ -442,6 +442,7 @@
 		D78525252A7B2EA4002FA637 /* NoteContentViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D78525242A7B2EA4002FA637 /* NoteContentViewTests.swift */; };
 		D7870BC12AC4750B0080BA88 /* MentionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7870BC02AC4750B0080BA88 /* MentionView.swift */; };
 		D7870BC32AC47EBC0080BA88 /* EventLoaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7870BC22AC47EBC0080BA88 /* EventLoaderView.swift */; };
+		D789D1202AFEFBF20083A7AB /* secp256k1 in Frameworks */ = {isa = PBXBuildFile; productRef = D789D11F2AFEFBF20083A7AB /* secp256k1 */; };
 		D79C4C172AFEB061003A41B4 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D79C4C162AFEB061003A41B4 /* NotificationService.swift */; };
 		D79C4C1B2AFEB061003A41B4 /* DamusNotificationService.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D79C4C142AFEB061003A41B4 /* DamusNotificationService.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		D7A343EE2AD0D77C00CED48B /* InlineSnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = D7A343ED2AD0D77C00CED48B /* InlineSnapshotTesting */; };
@@ -1223,6 +1224,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D789D1202AFEFBF20083A7AB /* secp256k1 in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2494,6 +2496,9 @@
 			dependencies = (
 			);
 			name = DamusNotificationService;
+			packageProductDependencies = (
+				D789D11F2AFEFBF20083A7AB /* secp256k1 */,
+			);
 			productName = DamusNotificationService;
 			productReference = D79C4C142AFEB061003A41B4 /* DamusNotificationService.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -3717,6 +3722,11 @@
 			productName = MarkdownUI;
 		};
 		4C649880286E0EE300EAE2B3 /* secp256k1 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4C64987F286E0EE300EAE2B3 /* XCRemoteSwiftPackageReference "secp256k1" */;
+			productName = secp256k1;
+		};
+		D789D11F2AFEFBF20083A7AB /* secp256k1 */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 4C64987F286E0EE300EAE2B3 /* XCRemoteSwiftPackageReference "secp256k1" */;
 			productName = secp256k1;
