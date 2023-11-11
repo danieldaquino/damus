@@ -6,7 +6,7 @@
 //
 
 import UserNotifications
-import damus
+import Foundation
 
 /// The representation of a JSON-encoded Nostr Event used by the push notification server
 /// Needs to match with https://gitlab.com/soapbox-pub/strfry-policies/-/raw/433459d8084d1f2d6500fdf916f22caa3b4d7be5/src/types.ts
@@ -40,6 +40,24 @@ class NotificationService: UNNotificationServiceExtension {
 
     override func didReceive(_ request: UNNotificationRequest, withContentHandler contentHandler: @escaping (UNNotificationContent) -> Void) {
         self.contentHandler = contentHandler
+        
+        do {
+            // Get the shared container URL
+            guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.damus") else {
+                print("Error getting shared container URL")
+                return
+            }
+            
+            // Get the contents of the directory
+            let fileURLs = try FileManager.default.contentsOfDirectory(at: containerURL, includingPropertiesForKeys: nil)
+            
+            // Print the names of the files
+            for fileURL in fileURLs {
+                print("File: \(fileURL.lastPathComponent)")
+            }
+        } catch {
+            print("Error reading file: \(error.localizedDescription)")
+        }
         
         if let bestAttemptContent = bestAttemptContent {
             // Modify the notification content here...

@@ -11,8 +11,9 @@ class Ndb {
     let ndb: ndb_t
 
     static var db_path: String {
-        let path = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.absoluteString
-        return remove_file_prefix(path!)
+        // Get the shared container URL
+        let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.damus")!
+        return remove_file_prefix(containerURL.absoluteString)
     }
 
     static var empty: Ndb {
