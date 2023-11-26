@@ -13,23 +13,8 @@ import UIKit
 let EVENT_MAX_AGE_FOR_NOTIFICATION: TimeInterval = 12 * 60 * 60
 
 func process_local_notification(ndb: Ndb, settings: UserSettingsStore, contacts: Contacts, muted_threads: MutedThreadsManager, user_keypair: Keypair, profiles: Profiles, event ev: NostrEvent) {
-    if ev.known_kind == nil {
-        return
-    }
-
-    if settings.notification_only_from_following,
-       contacts.follow_state(ev.pubkey) != .follows
-        {
-        return
-    }
-
-    // Don't show notifications from muted threads.
-    if muted_threads.isMutedThread(ev, keypair: user_keypair) {
-        return
-    }
-    
-    // Don't show notifications for old events
-    guard ev.age < EVENT_MAX_AGE_FOR_NOTIFICATION else {
+    guard should_display_notification(ndb: ndb, settings: settings, contacts: contacts, muted_threads: muted_threads, user_keypair: user_keypair, profiles: profiles, event: ev) else {
+        // We should not display notification. Exit.
         return
     }
 
@@ -45,6 +30,29 @@ func process_local_notification(ndb: Ndb, settings: UserSettingsStore, contacts:
     create_local_notification(profiles: profiles, notify: local_notification)
 }
 
+func should_display_notification(ndb: Ndb, settings: UserSettingsStore, contacts: Contacts, muted_threads: MutedThreadsManager, user_keypair: Keypair, profiles: Profiles, event ev: NostrEvent) -> Bool {
+    if ev.known_kind == nil {
+        return false
+    }
+
+    if settings.notification_only_from_following,
+       contacts.follow_state(ev.pubkey) != .follows
+        {
+        return false
+    }
+
+    // Don't show notifications from muted threads.
+    if muted_threads.isMutedThread(ev, keypair: user_keypair) {
+        return false
+    }
+    
+    // Don't show notifications for old events
+    guard ev.age < EVENT_MAX_AGE_FOR_NOTIFICATION else {
+        return false
+    }
+    
+    return true
+}
 
 func generate_local_notification_object(ndb: Ndb, from ev: NostrEvent, settings: UserSettingsStore, user_keypair: Keypair, profiles: Profiles) -> LocalNotification? {
     guard let type = ev.known_kind else {
