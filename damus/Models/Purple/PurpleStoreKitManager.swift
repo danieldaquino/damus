@@ -9,15 +9,36 @@ import Foundation
 import StoreKit
 
 extension DamusPurple {
-    struct StoreKitManager {
-        var delegate: DamusPurpleStoreKitManagerDelegate? = nil
+    class StoreKitManager { // Has to be a class to get around Swift-imposed limitations of mutations on concurrently executing code
+        var delegate: DamusPurpleStoreKitManagerDelegate? = nil {
+            didSet {
+                // Whenever the delegate is set, send it all recorded transactions.
+                Task {
+                    Log.info("Delegate changed. Try sending all recorded valid product transactions", for: .damus_purple)
+                    guard let new_delegate = delegate else {
+                        Log.info("Delegate is nil. Cannot send recorded product transactions", for: .damus_purple)
+                        return
+                    }
+                    Log.info("Sending all %d recorded valid product transactions", for: .damus_purple, self.recorded_purchased_products.count)
+                    
+                    for purchased_product in self.recorded_purchased_products {
+                        new_delegate.product_was_purchased(product: purchased_product)
+                        Log.info("Sent tx to delegate", for: .damus_purple)
+                    }
+                }
+            }
+        }
+        var recorded_purchased_products: [PurchasedProduct] = []
         
         struct PurchasedProduct {
             let tx: StoreKit.Transaction
             let product: Product
         }
         
+        static let standard = StoreKitManager()
+        
         init() {
+            Log.info("Initiliazing StoreKitManager", for: .damus_purple)
             self.start()
         }
         
@@ -31,7 +52,13 @@ extension DamusPurple {
             return try await Product.products(for: DamusPurpleType.allCases.map({ $0.rawValue }))
         }
         
+        func record_purchased_product(_ purchased_product: PurchasedProduct) {
+            self.recorded_purchased_products.append(purchased_product)
+            self.delegate?.product_was_purchased(product: purchased_product)
+        }
+        
         private func monitor_updates() async throws {
+            Log.info("Monitoring StoreKit updates", for: .damus_purple)
             for await update in StoreKit.Transaction.updates {
                 switch update {
                     case .verified(let tx):
@@ -42,7 +69,11 @@ extension DamusPurple {
                            let expiration = tx.expirationDate,
                            Date.now < expiration
                         {
-                            self.delegate?.product_was_purchased(product: PurchasedProduct(tx: tx, product: prod))
+                            Log.info("Received valid transaction update from StoreKit", for: .damus_purple)
+                            let purchased_product = PurchasedProduct(tx: tx, product: prod)
+                            self.recorded_purchased_products.append(purchased_product)
+                            self.delegate?.product_was_purchased(product: purchased_product)
+                            Log.info("Sent tx to delegate (if exists)", for: .damus_purple)
                         }
                     case .unverified:
                         continue
@@ -50,8 +81,8 @@ extension DamusPurple {
             }
         }
         
-        func purchase(product: Product) async throws -> Product.PurchaseResult {
-            return try await product.purchase(options: [])
+        func purchase(product: Product, id: UUID) async throws -> Product.PurchaseResult {
+            return try await product.purchase(options: [.appAccountToken(id)])
         }
     }
 }
