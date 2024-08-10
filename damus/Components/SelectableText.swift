@@ -55,7 +55,7 @@ struct SelectableText: View {
         }
         .sheet(isPresented: $showHighlightPost) {
             if let event {
-                HighlightPostView(damus_state: damus_state, event: event, selectedText: $selectedText)
+                HighlightPostView(damus_state: damus_state, source: .event(event), selected_text: $selectedText)
                     .presentationDragIndicator(.visible)
                     .presentationDetents([.height(selectedTextHeight + 150), .medium, .large])
             }
