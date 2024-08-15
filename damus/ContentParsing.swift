@@ -14,6 +14,8 @@ enum NoteContent {
     init(note: NostrEvent, keypair: Keypair) {
         if note.known_kind == .dm {
             self = .content(note.get_content(keypair), note.tags)
+        } else if note.known_kind == .highlight {
+            self = .content(note.get_content(keypair), note.tags)
         } else {
             self = .note(note)
         }

@@ -92,6 +92,17 @@ struct HighlightBodyView: View {
 
     var Main: some View {
         VStack(alignment: .leading, spacing: 0) {
+            
+            if self.event.event.referenced_comment_items.first?.content != nil {
+                NoteContentView(
+                    damus_state: self.state,
+                    event: self.event.event,
+                    blur_images: should_blur_images(damus_state: self.state, ev: self.event.event),
+                    size: .normal,
+                    options: [.no_action_bar]
+                ).padding(.top, 10)
+            }
+            
             HStack {
                 var attributedString: AttributedString {
                     var attributedString: AttributedString = ""
