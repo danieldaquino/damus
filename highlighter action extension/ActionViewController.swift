@@ -41,18 +41,26 @@ struct ShareExtensionView: View {
                             })
                             .foregroundStyle(.secondary)
                         }
+                    case .not_logged_in:
+                        Group {
+                            Text("Not logged in", comment: "Title indicating that a highlight cannot be posted because the user is not logged in.")
+                                .font(.largeTitle)
+                                .multilineTextAlignment(.center)
+                                .padding()
+                            Text("You cannot post a highlight because you are not logged in with a private key! Please close this, login with a private key (or nsec), and try again.", comment: "Label explaining a highlight cannot be made because the user is not logged in")
+                                .multilineTextAlignment(.center)
+                            Button(action: {
+                                self.done()
+                            }, label: {
+                                Text("Close", comment: "Button label giving the user the option to close the sheet from which they were trying to post a highlight")
+                            })
+                            .foregroundStyle(.secondary)
+                        }
                     case .loaded(let highlighted_text, let source_url):
-                        HighlightPostView(
-                            damus_state: state,
-                            source: .external_url(source_url),
-                            selected_text: Binding.constant(highlighted_text),
-                            on_post: { posted_event in
-                                self.highlighter_state = .posted(event: posted_event)
-                            },
-                            on_cancel: {
-                                self.highlighter_state = .cancelled
-                            }
-                        )
+                        PostView(
+                            action: .highlighting(HighlightContentDraft(selected_text: highlighted_text, source: .external_url(source_url))),
+                            damus_state: state
+                        ).tint(.accentColor)
                     case .failed(let error):
                         Group {
                             Text("Error", comment: "Title indicating that an error has occurred.")
@@ -108,11 +116,23 @@ struct ShareExtensionView: View {
         .onAppear(perform: {
             self.loadSharedUrl()
             guard let keypair = get_saved_keypair() else { return }
+            guard keypair.privkey != nil else {
+                self.highlighter_state = .not_logged_in
+                return
+            }
             self.state = DamusState(keypair: keypair)
         })
         .onChange(of: self.highlighter_state) {
             if case .cancelled = highlighter_state {
                 self.done()
+            }
+        }
+        .onReceive(handle_notify(.post)) { post_notification in
+            switch post_notification {
+                case .post(let post):
+                    self.post(post)
+                case .cancel:
+                    self.highlighter_state = .cancelled
             }
         }
     }
@@ -155,6 +175,23 @@ struct ShareExtensionView: View {
         }
     }
     
+    func post(_ post: NostrPost) {
+        guard let state else {
+            self.highlighter_state = .failed(error: "Damus state not initialized")
+            return
+        }
+        guard let full_keypair = state.keypair.to_full() else {
+            self.highlighter_state = .not_logged_in
+            return
+        }
+        guard let posted_event = post_to_event(post: post, keypair: full_keypair) else {
+            self.highlighter_state = .failed(error: "Cannot convert post data into a nostr event")
+            return
+        }
+        state.postbox.send(posted_event)
+        self.highlighter_state = .posted(event: posted_event)
+    }
+    
     func done() {
         self.extensionContext.completeRequest(returningItems: [], completionHandler: nil)
     }
@@ -162,6 +199,7 @@ struct ShareExtensionView: View {
     enum HighlighterState: Equatable {
         case loading
         case no_highlight_text
+        case not_logged_in
         case loaded(highlighted_text: String, source_url: URL)
         case posted(event: NostrEvent)
         case cancelled

@@ -43,6 +43,21 @@ struct HighlightBodyView: View {
     let state: DamusState
     let event: HighlightEvent
     let options: EventViewOptions
+    
+    // We use a computed, "virtual" nostr event to help us render the highlight comment and include mentions
+    // The "virtual" nostr event uses a bogus keypair because we only need this for rendering, and signatures do not matter here
+    //
+    // TODO: This is not the cleanest way. Ideally we would compute a `NostrPost` object and render that, but `NoteContentView` has deep dependencies on `NostrEvent` due to its cache design — that will take significant work to refactor.
+    var highlight_comment_virtual_event: NostrEvent? {
+        guard let comment = event.event.referenced_comment_items.first?.content else { return nil }
+        return NdbNote(
+            content: comment,
+            keypair: Keypair(pubkey: ANON_PUBKEY, privkey: nil),
+            kind: 1,
+            tags: event.event.tags.strings(),
+            createdAt: event.event.created_at
+        )
+    }
 
     init(state: DamusState, ev: HighlightEvent, options: EventViewOptions) {
         self.state = state
@@ -92,6 +107,17 @@ struct HighlightBodyView: View {
 
     var Main: some View {
         VStack(alignment: .leading, spacing: 0) {
+            
+            if let highlight_comment_virtual_event {
+                NoteContentView(
+                    damus_state: self.state,
+                    event: highlight_comment_virtual_event,
+                    blur_images: should_blur_images(damus_state: self.state, ev: self.event.event),
+                    size: .normal,
+                    options: [.no_action_bar]
+                ).padding(.top, 10)
+            }
+            
             HStack {
                 var attributedString: AttributedString {
                     var attributedString: AttributedString = ""
