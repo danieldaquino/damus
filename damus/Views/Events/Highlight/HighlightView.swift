@@ -59,9 +59,9 @@ struct HighlightBodyView: View {
     var body: some View {
         Group {
             if options.contains(.wide) {
-                Main.padding(.horizontal)
-            } else {
                 Main
+            } else {
+                Main.padding(.horizontal)
             }
         }
     }
@@ -94,13 +94,14 @@ struct HighlightBodyView: View {
         VStack(alignment: .leading, spacing: 0) {
             
             if self.event.event.referenced_comment_items.first?.content != nil {
+                let all_options = options.union(.no_action_bar)
                 NoteContentView(
                     damus_state: self.state,
                     event: self.event.event,
                     blur_images: should_blur_images(damus_state: self.state, ev: self.event.event),
                     size: .normal,
-                    options: [.no_action_bar]
-                ).padding(.top, 10)
+                    options: all_options
+                ).padding(.vertical, 10)
             }
             
             HStack {
@@ -130,14 +131,17 @@ struct HighlightBodyView: View {
                 RoundedRectangle(cornerRadius: 25).fill(DamusColors.highlight).frame(width: 4),
                 alignment: .leading
             )
+            .padding(.horizontal)
             .padding(.bottom, 10)
 
             if let url = event.url_ref {
                 HighlightLink(state: state, url: url, content: event.event.content)
+                    .padding(.horizontal)
             } else {
                 if let evRef = event.event_ref {
                     if let eventHex = hex_decode_id(evRef) {
                         HighlightEventRef(damus_state: state, event_ref: NoteId(eventHex))
+                            .padding(.horizontal)
                             .padding(.top, 5)
                     }
                 }
