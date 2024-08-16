@@ -60,7 +60,7 @@ struct ShareExtensionView: View {
                         PostView(
                             action: .highlighting(HighlightContentDraft(selected_text: highlighted_text, source: .external_url(source_url))),
                             damus_state: state
-                        ).tint(.accentColor)
+                        )
                     case .failed(let error):
                         Group {
                             Text("Error", comment: "Title indicating that an error has occurred.")
@@ -210,6 +210,7 @@ struct ShareExtensionView: View {
 class ActionViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
+        self.view.tintColor = UIColor(DamusColors.purple)
         
         DispatchQueue.main.async {
             let contentView = UIHostingController(rootView: ShareExtensionView(extensionContext: self.extensionContext!))
