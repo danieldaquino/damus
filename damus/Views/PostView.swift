@@ -660,7 +660,7 @@ func build_post(state: DamusState, post: NSMutableAttributedString, action: Post
         case .posting(let postTarget):
             break
         case .highlighting(let draft):
-            tags.append(contentsOf: draft.source.tags())
+            break
     }
     
     // include pubkeys
@@ -674,7 +674,7 @@ func build_post(state: DamusState, post: NSMutableAttributedString, action: Post
     switch action {
         case .highlighting(let draft):
             tags.append(contentsOf: draft.source.tags())
-            tags.append(["comment", post.string])
+            tags.append(["comment", content])
             return NostrPost(content: draft.selected_text, kind: .highlight, tags: tags)
         case .replying_to(let replying_to):
             // start off with the reply tags
