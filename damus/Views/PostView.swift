@@ -131,7 +131,12 @@ struct PostView: View {
     }
 
     var posting_disabled: Bool {
-        return is_post_empty || uploading_disabled
+        switch action {
+            case .highlighting(_):
+                return false
+            default:
+                return is_post_empty || uploading_disabled
+        }
     }
     
     // Returns a valid height for the text box, even when textHeight is not a number
@@ -709,7 +714,9 @@ func build_post(state: DamusState, post: NSMutableAttributedString, action: Post
     switch action {
         case .highlighting(let draft):
             tags.append(contentsOf: draft.source.tags())
-            tags.append(["comment", content])
+            if !(content.isEmpty || content.allSatisfy { $0.isWhitespace })  {
+                tags.append(["comment", content])
+            }
             return NostrPost(content: draft.selected_text, kind: .highlight, tags: tags)
         default:
             break
