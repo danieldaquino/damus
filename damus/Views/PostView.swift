@@ -711,17 +711,7 @@ func build_post(state: DamusState, post: NSMutableAttributedString, action: Post
             tags.append(contentsOf: draft.source.tags())
             tags.append(["comment", content])
             return NostrPost(content: draft.selected_text, kind: .highlight, tags: tags)
-        case .replying_to(let replying_to):
-            // start off with the reply tags
-            tags = nip10_reply_tags(replying_to: replying_to, keypair: state.keypair)
-
-        case .quoting(let ev):
-            content.append(" nostr:" + bech32_note_id(ev.id))
-
-            if let quoted_ev = state.events.lookup(ev.id) {
-                tags.append(["p", quoted_ev.pubkey.hex()])
-            }
-        case .posting(let postTarget):
+        default:
             break
     }
 
