@@ -81,7 +81,7 @@ struct ShareExtensionView: View {
                         Group {
                             Image(systemName: "checkmark.circle.fill")
                                 .resizable()
-                                .frame(width: 100, height: 100)
+                                .frame(width: 60, height: 60)
                             Text("Posted", comment: "Title indicating that the user has posted a highlight successfully")
                                 .font(.largeTitle)
                                 .multilineTextAlignment(.center)
