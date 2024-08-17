@@ -110,6 +110,18 @@ struct ShareExtensionView: View {
                             })
                             .foregroundStyle(.secondary)
                         }
+                    case .posting:
+                        Group {
+                            ProgressView()
+                                .frame(width: 20, height: 20)
+                            Text("Posting", comment: "Title indicating that the highlight post is being published to the network")
+                                .font(.largeTitle)
+                                .multilineTextAlignment(.center)
+                                .padding(.bottom)
+                            Text("Your highlight is being broadcasted to the network. Please wait.", comment: "Label explaining there their highlight publishing action is in progress")
+                                .multilineTextAlignment(.center)
+                                .padding()
+                        }
                 }
             }
         }
@@ -176,6 +188,7 @@ struct ShareExtensionView: View {
     }
     
     func post(_ post: NostrPost) {
+        self.highlighter_state = .posting
         guard let state else {
             self.highlighter_state = .failed(error: "Damus state not initialized")
             return
@@ -188,8 +201,16 @@ struct ShareExtensionView: View {
             self.highlighter_state = .failed(error: "Cannot convert post data into a nostr event")
             return
         }
-        state.postbox.send(posted_event)
-        self.highlighter_state = .posted(event: posted_event)
+        state.postbox.send(posted_event, on_flush: .once({ flushed_event in
+            if flushed_event.event.id == posted_event.id {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: {  // Offset labor perception bias
+                    self.highlighter_state = .posted(event: flushed_event.event)
+                })
+            }
+            else {
+                self.highlighter_state = .failed(error: "Flushed event is not the event we just tried to post.")
+            }
+        }))
     }
     
     func done() {
@@ -201,6 +222,7 @@ struct ShareExtensionView: View {
         case no_highlight_text
         case not_logged_in
         case loaded(highlighted_text: String, source_url: URL)
+        case posting
         case posted(event: NostrEvent)
         case cancelled
         case failed(error: String)
