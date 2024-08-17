@@ -58,6 +58,7 @@ struct PostView: View {
     @State var filtered_pubkeys: Set<Pubkey> = []
     @State var focusWordAttributes: (String?, NSRange?) = (nil, nil)
     @State var newCursorIndex: Int?
+    @State var textHeight: CGFloat? = nil
 
     @State var preUploadedMedia: PreUploadedMedia? = nil
     
@@ -131,6 +132,16 @@ struct PostView: View {
 
     var posting_disabled: Bool {
         return is_post_empty || uploading_disabled
+    }
+    
+    // Returns a valid height for the text box, even when textHeight is not a number
+    func get_valid_text_height() -> CGFloat {
+        if let textHeight, textHeight.isFinite, textHeight > 0 {
+            return textHeight
+        }
+        else {
+            return 10
+        }
     }
     
     var ImageButton: some View {
@@ -226,21 +237,45 @@ struct PostView: View {
     }
     
     var TextEntry: some View {
-        NoteComposer(
-            damus_state: self.damus_state,
-            placeholder_messages: self.placeholder_messages,
-            initial_text_suffix: self.initial_text_suffix,
-            post_changed: { post, media in
-                self.post_changed(post: post, media: media)
-            },
-            post: self.$post,
-            focus: self._focus,
-            uploadedMedias: self.$uploadedMedias,
-            focusWordAttributes: self.$focusWordAttributes,
-            newCursorIndex: self.$newCursorIndex,
-            tagModel: self.tagModel,
-            current_placeholder_index: self.$current_placeholder_index
-        )
+        ZStack(alignment: .topLeading) {
+            TextViewWrapper(
+                attributedText: $post,
+                textHeight: $textHeight,
+                initialTextSuffix: initial_text_suffix, 
+                cursorIndex: newCursorIndex,
+                getFocusWordForMention: { word, range in
+                    focusWordAttributes = (word, range)
+                    self.newCursorIndex = nil
+                }, 
+                updateCursorPosition: { newCursorIndex in
+                    self.newCursorIndex = newCursorIndex
+                }
+            )
+                .environmentObject(tagModel)
+                .focused($focus)
+                .textInputAutocapitalization(.sentences)
+                .onChange(of: post) { p in
+                    post_changed(post: p, media: uploadedMedias)
+                }
+                // Set a height based on the text content height, if it is available and valid
+                .frame(height: get_valid_text_height())
+            
+            if post.string.isEmpty {
+                Text(self.placeholder_messages[self.current_placeholder_index])
+                    .padding(.top, 8)
+                    .padding(.leading, 4)
+                    .foregroundColor(Color(uiColor: .placeholderText))
+                    .allowsHitTesting(false)
+            }
+        }
+        .onAppear {
+            // Schedule a timer to switch messages every 3 seconds
+            Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { timer in
+                withAnimation {
+                    self.current_placeholder_index = (self.current_placeholder_index + 1) % self.placeholder_messages.count
+                }
+            }
+        }
     }
     
     var TopBar: some View {
@@ -692,3 +727,4 @@ func build_post(state: DamusState, post: NSMutableAttributedString, action: Post
 
     return NostrPost(content: content, kind: .text, tags: tags)
 }
+
