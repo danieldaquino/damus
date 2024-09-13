@@ -17,6 +17,7 @@ public struct RelayInfo: Codable {
     }
 
     static let rw = RelayInfo(read: true, write: true)
+    static let r = RelayInfo(read: true, write: false)
 }
 
 enum RelayVariant {
