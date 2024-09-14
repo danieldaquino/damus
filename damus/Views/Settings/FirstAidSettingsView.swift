@@ -71,9 +71,14 @@ struct FirstAidSettingsView: View {
                        }
             }
             
-            if damus_state.contacts.event != nil {
-                Text("We did not detect any issues that we can automatically fix for you. If you are having issues, please contact Damus support: [support@damus.io](mailto:support@damus.io)", comment: "Message indicating that no First Aid actions are available.")
-            }
+            Button(action: {
+                damus_state.nav.push(route: Route.ContactListRecoveryWizard)
+            }, label: {
+                Text("Contact list search and recover wizard…", comment: "Button to search and recover a contact list")
+            })
+            .disabled(reset_contact_list_state == .in_progress)
+            
+            Text("If you are having issues that cannot be fixed here, please contact Damus support: [support@damus.io](mailto:support@damus.io)", comment: "Message indicating that user may contact support if they are having issues.")
         }
         .navigationTitle(NSLocalizedString("First Aid", comment: "Navigation title for first aid settings and tools"))
     }

@@ -39,7 +39,7 @@ enum NdbData {
     }
 }
 
-class NdbNote: Encodable, Equatable, Hashable {
+class NdbNote: Encodable, Equatable, Hashable, Identifiable {
     // we can have owned notes, but we can also have lmdb virtual-memory mapped notes so its optional
     let owned: Bool
     let count: Int

@@ -974,7 +974,8 @@
 		D753CEAA2BE9DE04001C3A5D /* MutingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D753CEA92BE9DE04001C3A5D /* MutingTests.swift */; };
 		D76556D62B1E6C08001B0CCC /* DamusPurpleWelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D76556D52B1E6C08001B0CCC /* DamusPurpleWelcomeView.swift */; };
 		D76874F32AE3632B00FB0F68 /* ProfileZapLinkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D76874F22AE3632B00FB0F68 /* ProfileZapLinkView.swift */; };
-		D768BC202C94F60200C327F9 /* ContactListRecoveryWizard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D768BC1F2C94F60200C327F9 /* ContactListRecoveryWizard.swift */; };
+		D768BC202C94F60200C327F9 /* ContactListRecoveryWizardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D768BC1F2C94F60200C327F9 /* ContactListRecoveryWizardView.swift */; };
+		D768BC212C950E7A00C327F9 /* ContactListRecoveryWizardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D768BC1F2C94F60200C327F9 /* ContactListRecoveryWizardView.swift */; };
 		D773BC5F2C6D538500349F0A /* CommentItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = D773BC5E2C6D538500349F0A /* CommentItem.swift */; };
 		D773BC602C6D538500349F0A /* CommentItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = D773BC5E2C6D538500349F0A /* CommentItem.swift */; };
 		D773BC612C6D58A700349F0A /* CommentItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = D773BC5E2C6D538500349F0A /* CommentItem.swift */; };
@@ -1930,7 +1931,7 @@
 		D753CEA92BE9DE04001C3A5D /* MutingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MutingTests.swift; sourceTree = "<group>"; };
 		D76556D52B1E6C08001B0CCC /* DamusPurpleWelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DamusPurpleWelcomeView.swift; sourceTree = "<group>"; };
 		D76874F22AE3632B00FB0F68 /* ProfileZapLinkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileZapLinkView.swift; sourceTree = "<group>"; };
-		D768BC1F2C94F60200C327F9 /* ContactListRecoveryWizard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactListRecoveryWizard.swift; sourceTree = "<group>"; };
+		D768BC1F2C94F60200C327F9 /* ContactListRecoveryWizardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactListRecoveryWizardView.swift; sourceTree = "<group>"; };
 		D773BC5E2C6D538500349F0A /* CommentItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommentItem.swift; sourceTree = "<group>"; };
 		D77BFA0A2AE3051200621634 /* ProfileActionSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileActionSheetView.swift; sourceTree = "<group>"; };
 		D783A63E2AD4E53D00658DDA /* SuggestedHashtagsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestedHashtagsView.swift; sourceTree = "<group>"; };
@@ -3342,7 +3343,7 @@
 		D768BC1E2C94F5E400C327F9 /* FirstAid */ = {
 			isa = PBXGroup;
 			children = (
-				D768BC1F2C94F60200C327F9 /* ContactListRecoveryWizard.swift */,
+				D768BC1F2C94F60200C327F9 /* ContactListRecoveryWizardView.swift */,
 			);
 			path = FirstAid;
 			sourceTree = "<group>";
@@ -4117,7 +4118,7 @@
 				4C5D5C9D2A6B2CB40024563C /* AsciiCharacter.swift in Sources */,
 				4CF0ABEC29844B4700D66079 /* AnyDecodable.swift in Sources */,
 				4C9146FE2A2A87C200DDEA40 /* nostrscript.c in Sources */,
-				D768BC202C94F60200C327F9 /* ContactListRecoveryWizard.swift in Sources */,
+				D768BC202C94F60200C327F9 /* ContactListRecoveryWizardView.swift in Sources */,
 				4C5F9118283D88E40052CD1C /* FollowingModel.swift in Sources */,
 				4C1A9A1A29DCA17E00516EAC /* ReplyCounter.swift in Sources */,
 				50B5685329F97CB400A23243 /* CredentialHandler.swift in Sources */,
@@ -4423,6 +4424,7 @@
 				D73E5EC92C6A97F4007EB227 /* CameraController.swift in Sources */,
 				D73E5ECA2C6A97F4007EB227 /* OnboardingSuggestionsView.swift in Sources */,
 				D73E5ECB2C6A97F4007EB227 /* SuggestedUserView.swift in Sources */,
+				D768BC212C950E7A00C327F9 /* ContactListRecoveryWizardView.swift in Sources */,
 				D73E5ECC2C6A97F4007EB227 /* SuggestedUsersViewModel.swift in Sources */,
 				D73E5ECE2C6A97F4007EB227 /* CodeScanner.swift in Sources */,
 				D73E5ECF2C6A97F4007EB227 /* ScannerCoordinator.swift in Sources */,
