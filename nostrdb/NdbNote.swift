@@ -354,6 +354,17 @@ extension NdbNote {
     func highlighted_note_id() -> NoteId? {
         return ThreadReply(tags: self.tags)?.reply.note_id
     }
+    
+    /// Gets the identifier for replaceable events — found in the "d" tag 
+    func replaceable_event_identifier() -> String? {
+        self.referenced_params.first?.param.string()
+    }
+    
+    /// Determines whether this event is a deprecated mute list format
+    /// Reference: https://github.com/nostr-protocol/nips/blob/master/51.md#deprecated-standard-lists
+    func is_deprecated_mute_list() -> Bool {
+        return self.kind == NostrKind.list_deprecated.rawValue && self.replaceable_event_identifier() == "mute"
+    }
 
     func get_content(_ keypair: Keypair) -> String {
         if known_kind == .dm {

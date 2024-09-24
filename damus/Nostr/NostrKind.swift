@@ -18,7 +18,7 @@ enum NostrKind: UInt32, Codable {
     case like = 7
     case chat = 42
     case mute_list = 10000
-    case list_deprecated = 30000
+    case follow_set = 30000
     case longform = 30023
     case zap = 9735
     case zap_request = 9734
@@ -27,4 +27,6 @@ enum NostrKind: UInt32, Codable {
     case nwc_response = 23195
     case http_auth = 27235
     case status = 30315
+    
+    static let list_deprecated: Self = .follow_set
 }

@@ -191,8 +191,13 @@ class HomeModel: ContactsDelegate {
         case .metadata:
             // profile metadata processing is handled by nostrdb
             break
-        case .list_deprecated:
-            handle_old_list_event(ev)
+        case .follow_set:
+            if ev.is_deprecated_mute_list() {
+                handle_old_list_event(ev)
+            }
+            else {
+                // TODO: Write something here
+            }
         case .mute_list:
             handle_mute_list_event(ev)
         case .boost:
@@ -650,7 +655,7 @@ class HomeModel: ContactsDelegate {
             }
         }
         
-        guard ev.referenced_params.contains(where: { p in p.param.matches_str("mute") }) else {
+        guard ev.is_deprecated_mute_list() else {
             return
         }
 

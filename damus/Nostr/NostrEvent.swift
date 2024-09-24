@@ -809,7 +809,7 @@ extension NostrEvent {
     ///
     /// If the event is not a mutelist it will return `nil`.
     var mute_list: Set<MuteItem>? {
-        if (self.kind == NostrKind.list_deprecated.rawValue && self.referenced_params.contains(where: { p in p.param.matches_str("mute") })) || self.kind == NostrKind.mute_list.rawValue {
+        if self.is_deprecated_mute_list() || self.kind == NostrKind.mute_list.rawValue {
             return Set(self.referenced_mute_items)
         } else {
             return nil
