@@ -73,6 +73,7 @@ struct ProfileView: View {
     @State var mute_dialog_presented: Bool = false
     @State var filter_state : FilterState = .posts
     @State var yOffset: CGFloat = 0
+    @State var favourited: Bool = false
 
     @StateObject var profile: ProfileModel
     @StateObject var followers: FollowersModel
@@ -144,18 +145,11 @@ struct ProfileView: View {
         return 100.0 - (Theme.safeAreaInsets?.top ?? 0)
     }
 
-    func navImage(img: String) -> some View {
-        Image(img)
-            .frame(width: 33, height: 33)
-            .background(Color.black.opacity(0.6))
-            .clipShape(Circle())
-    }
-
     var navBackButton: some View {
         Button {
             presentationMode.wrappedValue.dismiss()
         } label: {
-            navImage(img: "chevron-left")
+            NavImage(img: "chevron-left")
         }
     }
 
@@ -454,6 +448,10 @@ struct ProfileView: View {
                         .accentColor(DamusColors.white)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
+                    ProfileFavouriteButton(favourited: self.$favourited)
+                        .padding(.top, 5)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
                     navActionSheetButton
                         .padding(.top, 5)
                         .accentColor(DamusColors.white)
@@ -502,6 +500,41 @@ extension View {
         self.symbolRenderingMode(.palette)
             .font(.system(size: 32).weight(.thin))
             .foregroundStyle(scheme == .dark ? .white : .black, scheme == .dark ? .white : .black)
+    }
+}
+
+fileprivate struct ProfileFavouriteButton: View {
+    @Binding var favourited: Bool
+    
+    var body: some View {
+        Button(action: {
+            favourited.toggle()
+        }) {
+            if favourited {
+                NavImage(img: "heart.fill", background: Color.pink)
+            }
+            else {
+                NavImage(img: "heart")
+            }
+        }
+        .accentColor(DamusColors.white)
+    }
+}
+
+fileprivate struct NavImage: View {
+    let img: String
+    let background: Color
+    
+    init(img: String, background: Color = Color.black.opacity(0.6)) {
+        self.img = img
+        self.background = background
+    }
+    
+    var body: some View {
+        Image(img)
+            .frame(width: 33, height: 33)
+            .background(self.background)
+            .clipShape(Circle())
     }
 }
 
