@@ -93,6 +93,7 @@ struct ContentView: View {
     @StateObject var navigationCoordinator: NavigationCoordinator = NavigationCoordinator()
     @AppStorage("has_seen_suggested_users") private var hasSeenOnboardingSuggestions = false
     let sub_id = UUID().description
+    @State var selected_list: UserList = .following
     
     // connect retry timer
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -145,15 +146,7 @@ struct ContentView: View {
             ToolbarItem(placement: .principal) {
                 VStack {
                     if selected_timeline == .home {
-                        Image("damus-home")
-                            .resizable()
-                            .frame(width:30,height:30)
-                            .shadow(color: DamusColors.purple, radius: 2)
-                            .opacity(isSideBarOpened ? 0 : 1)
-                            .animation(isSideBarOpened ? .none : .default, value: isSideBarOpened)
-                            .onTapGesture {
-                                isSideBarOpened.toggle()
-                            }
+                        self.ListSelector()
                     } else {
                         timelineNavItem
                             .opacity(isSideBarOpened ? 0 : 1)
@@ -162,6 +155,49 @@ struct ContentView: View {
                 }
             }
         }
+    }
+    
+    enum UserList {
+        case following
+        case favorites
+        
+        func heading() -> String {
+            switch self {
+                case .following:
+                    return NSLocalizedString("Following", comment: "Heading for selected user list")
+                case .favorites:
+                    return NSLocalizedString("My favorites", comment: "Heading for selected user list")
+            }
+        }
+    }
+    
+    func ListSelector() -> some View {
+        Menu {
+            Button {
+                selected_list = .following
+            } label: {
+                Label(UserList.following.heading(), image: "users")
+            }
+            Button {
+                selected_list = .favorites
+            } label: {
+                Label(UserList.favorites.heading(), image: "heart")
+            }
+        } label: {
+            VStack(spacing: 1) {
+                Text(selected_list.heading())
+                    .bold()
+                HStack {
+                    Text(pluralizedString(key: "users", count: 42))
+                        .font(.caption)
+                    Image("chevron-down")
+                        .resizable()
+                        .frame(width: 10, height: 10)
+                }
+                .foregroundStyle(.secondary)
+            }
+        }
+        .tint(Color.black)
     }
     
     func MaybeReportView(target: ReportTarget) -> some View {

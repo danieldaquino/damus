@@ -290,6 +290,22 @@
 			<string>%d users talking about it</string>
 		</dict>
 	</dict>
+	<key>users</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@USERS@</string>
+		<key>USERS</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d user</string>
+			<key>other</key>
+			<string>%d users</string>
+		</dict>
+	</dict>
 	<key>word_count</key>
 	<dict>
 		<key>NSStringLocalizedFormatKey</key>

@@ -73,7 +73,7 @@ struct ProfileView: View {
     @State var mute_dialog_presented: Bool = false
     @State var filter_state : FilterState = .posts
     @State var yOffset: CGFloat = 0
-    @State var favourited: Bool = false
+    @State var is_favorite: Bool = false
 
     @StateObject var profile: ProfileModel
     @StateObject var followers: FollowersModel
@@ -448,7 +448,7 @@ struct ProfileView: View {
                         .accentColor(DamusColors.white)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    ProfileFavouriteButton(favourited: self.$favourited)
+                    ProfileFavoriteButton(favourited: self.$is_favorite)
                         .padding(.top, 5)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
@@ -503,7 +503,7 @@ extension View {
     }
 }
 
-fileprivate struct ProfileFavouriteButton: View {
+fileprivate struct ProfileFavoriteButton: View {
     @Binding var favourited: Bool
     
     var body: some View {
