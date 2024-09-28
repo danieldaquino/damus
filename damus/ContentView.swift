@@ -93,7 +93,7 @@ struct ContentView: View {
     @StateObject var navigationCoordinator: NavigationCoordinator = NavigationCoordinator()
     @AppStorage("has_seen_suggested_users") private var hasSeenOnboardingSuggestions = false
     let sub_id = UUID().description
-    @State var selected_list: UserList = .following
+    @State var selected_list: UserListSelection = .following
     
     // connect retry timer
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -132,7 +132,7 @@ struct ContentView: View {
                 }
                 
             case .home:
-                PostingTimelineView(damus_state: damus_state!, home: home, active_sheet: $active_sheet)
+                PostingTimelineView(damus_state: damus_state!, home: home, selected_user_list: self.selected_list.model(pool: damus_state.pool), active_sheet: $active_sheet)
                 
             case .notifications:
                 NotificationsView(state: damus, notifications: home.notifications, subtitle: $menu_subtitle)
@@ -157,31 +157,17 @@ struct ContentView: View {
         }
     }
     
-    enum UserList {
-        case following
-        case favorites
-        
-        func heading() -> String {
-            switch self {
-                case .following:
-                    return NSLocalizedString("Following", comment: "Heading for selected user list")
-                case .favorites:
-                    return NSLocalizedString("My favorites", comment: "Heading for selected user list")
-            }
-        }
-    }
-    
     func ListSelector() -> some View {
         Menu {
             Button {
                 selected_list = .following
             } label: {
-                Label(UserList.following.heading(), image: "users")
+                Label(UserListSelection.following.heading(), image: "users")
             }
             Button {
                 selected_list = .favorites
             } label: {
-                Label(UserList.favorites.heading(), image: "heart")
+                Label(UserListSelection.favorites.heading(), image: "heart")
             }
         } label: {
             VStack(spacing: 1) {
