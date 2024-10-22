@@ -186,7 +186,12 @@ struct ImageCarousel<Content: View>: View {
                         model.open_sheet = true
                     }
             case .video(let url):
-                DamusVideoPlayer(url: url, video_size: $model.video_size, coordinator: state.video, style: .preview(on_tap: { model.open_sheet = true }))
+                    DamusVideoPlayer(
+                        url: url,
+                        video_size: $model.video_size,
+                        coordinator: state.video,
+                        style: .preview(on_tap: { model.open_sheet = true })
+                    )
                     .onChange(of: model.video_size) { size in
                         guard let size else { return }
                         
@@ -255,7 +260,7 @@ struct ImageCarousel<Content: View>: View {
             }
         }
         .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-        .fullScreenCover(isPresented: $model.open_sheet) {
+        .damus_full_screen_cover($model.open_sheet, damus_state: state) {
             if let content {
                 FullScreenCarouselView<Content>(video_coordinator: state.video, urls: urls, settings: state.settings, selectedIndex: $model.selectedIndex) {
                     content({ // Dismiss closure
