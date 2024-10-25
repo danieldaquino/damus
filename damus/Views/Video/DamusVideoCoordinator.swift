@@ -24,11 +24,28 @@ struct VideoMetadata {
 ///
 /// A good analogy here is that video players and their models/states are like individual car drivers, and this coordinator is like a traffic control person that ensures cars don't crash each other.
 final class DamusVideoCoordinator: ObservableObject {
+    // MARK: - States
+    
+    // MARK: State and information about each video
+    
     private var mute_states: [URL: Bool] = [:]
     private var current_time_states: [URL: TimeInterval] = [:]
     private var metadatas: [URL: VideoMetadata] = [:]
+    
+    // MARK: Visible video player stacks
+    // The stacks of video players that have marked themselves as visible on the user screen.
+    //
+    // Because our visibility tracker cannot tell if a player is obscured by a view in front of it,
+    // we need to implement two stacks representing the different view layers:
+    // - Normal layer: For timelines, threads, etc
+    // - Full screen layer: For full screen views
+    
     private var visible_players_stack: [DamusVideoPlayerViewModel] = []
     private var visible_full_screen_players_stack: [DamusVideoPlayerViewModel] = []
+    
+    // MARK: Coordinator state
+    // Members representing the state of the coordinator itself
+    
     private var full_screen_mode: Bool = false {
         didSet {
             self.select_focused_video()
@@ -47,6 +64,8 @@ final class DamusVideoCoordinator: ObservableObject {
             }
         }
     }
+    
+    // MARK: - Interface to set and fetch information about each different video
     
     func set_should_mute_video(url: URL, state: Bool) {
         mute_states[url] = state
@@ -102,24 +121,27 @@ final class DamusVideoCoordinator: ObservableObject {
         self.select_focused_video()
     }
     
-    private func select_focused_video() {
-        // The focused video will always be the last one that was inserted — similar to a LIFO stack
-        // The reason is that:
-        // - both a LIFO stack and a FIFO queue are decent at selecting videos when scrolling on the Y axis (timeline),
-        // - The LIFO stack is better at selecting videos when navigating on the Z axis (e.g. opening and closing full screen covers or sheets), since those sheets operate like a stack as well
-        //
-        // Also, always prefer to play a high priority item, falling back to regular ones when necessary
-        // If on full screen mode, only play high priority items
-        focused_video = self.full_screen_mode ? visible_full_screen_players_stack.last : visible_players_stack.last
-        Log.info("VIDEO_COORDINATOR: full_screen stack: %s", for: .video_coordination, visible_full_screen_players_stack.map({ $0.id.uuidString }).debugDescription)
-        Log.info("VIDEO_COORDINATOR: stack: %s", for: .video_coordination, visible_players_stack.map({ $0.id.uuidString }).debugDescription)
-        Log.info("VIDEO_COORDINATOR: full_screen_mode: %s", for: .video_coordination, String(describing: self.full_screen_mode))
-    }
-    
-    
     // MARK: - Additional interface to help with video coordination
     
     func set_full_screen_mode(_ is_full_screen: Bool) {
         full_screen_mode = is_full_screen
+    }
+    
+    // MARK: - Internal video coordination logic
+    
+    private func select_focused_video() {
+        // This function may be called during a SwiftUI view update,
+        // so schedule this change for the next render pass to ensure state immutability/stability within a single render pass
+        DispatchQueue.main.async { [weak self] in   // [weak self] to safeguard in cases this object is deallocated by the time we execute this task
+            guard let self else { return }
+            // The focused video will always be the last one that was inserted — similar to a LIFO stack
+            // The reason is that:
+            // - both a LIFO stack and a FIFO queue are decent at selecting videos when scrolling on the Y axis (timeline),
+            // - The LIFO stack is better at selecting videos when navigating on the Z axis (e.g. opening and closing full screen covers or sheets), since those sheets operate like a stack as well
+            self.focused_video = self.full_screen_mode ? self.visible_full_screen_players_stack.last : self.visible_players_stack.last
+        }
+        Log.info("VIDEO_COORDINATOR: full_screen stack: %s", for: .video_coordination, visible_full_screen_players_stack.map({ $0.id.uuidString }).debugDescription)
+        Log.info("VIDEO_COORDINATOR: stack: %s", for: .video_coordination, visible_players_stack.map({ $0.id.uuidString }).debugDescription)
+        Log.info("VIDEO_COORDINATOR: full_screen_mode: %s", for: .video_coordination, String(describing: self.full_screen_mode))
     }
 }
