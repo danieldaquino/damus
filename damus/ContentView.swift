@@ -245,6 +245,7 @@ struct ContentView: View {
                     }
                 }
                 .navigationViewStyle(.stack)
+                .environmentObject(damus.video)
                 .overlay(alignment: .bottom) {
                     if !hide_bar {
                         if !isSideBarOpened {

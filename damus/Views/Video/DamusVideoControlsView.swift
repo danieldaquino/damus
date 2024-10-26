@@ -9,7 +9,7 @@ import SwiftUI
 import AVFoundation
 
 struct DamusVideoControlsView: View {
-    @ObservedObject var video: DamusVideoPlayerViewModel
+    @ObservedObject var video: DamusVideoPlayer
     
     var body: some View {
         VStack {

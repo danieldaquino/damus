@@ -186,7 +186,7 @@ struct ImageCarousel<Content: View>: View {
                         model.open_sheet = true
                     }
             case .video(let url):
-                    DamusVideoPlayer(
+                    DamusVideoPlayerView(
                         url: url,
                         video_size: $model.video_size,
                         coordinator: state.video,

@@ -19,7 +19,7 @@ fileprivate struct DamusFullScreenCover<FullScreenContent: View>: ViewModifier {
             }
             .fullScreenCover(isPresented: $is_presented, content: {
                 full_screen_content()
-                    .environment(\.video_focus_context, .full_screen)
+                    .environment(\.view_layer_context, .full_screen_layer)
                     // Another observer for full screen presentation is needed here because in some cases the underlying view (`body::content`) may have been deinitialized and no longer listen to changes
                     // One such example is when the underlying navigation stack navigates away from a source view at the same time it opens the full screen view
                     // Therefore, when the full screen view is dismissed, this content will disappear, and we should notify the video coordinator.

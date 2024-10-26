@@ -62,10 +62,8 @@ struct FullScreenCarouselView<Content: View>: View {
                             ImageContainerView(
                                 video_coordinator: video_coordinator,
                                 url: urls[index],
-                                settings: settings,
-                                video_focus_context: .full_screen
+                                settings: settings
                             )
-                            .environment(\.video_focus_context, .full_screen)
                             .modifier(SwipeToDismissModifier(minDistance: 50, onDismiss: {
                                 presentationMode.wrappedValue.dismiss()
                             }))

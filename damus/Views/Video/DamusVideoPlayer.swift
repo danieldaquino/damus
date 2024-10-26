@@ -1,158 +1,213 @@
 //
-//  VideoPlayerView.swift
+//  DamusVideoPlayer.swift
 //  damus
 //
-//  Created by William Casarin on 2023-04-05.
+//  Created by Bryan Montz on 9/5/23.
 //
 
+import AVFoundation
+import AVKit
+import Combine
+import Foundation
 import SwiftUI
 
-/// get coordinates in Global reference frame given a Local point & geometry
-func globalCoordinate(localX x: CGFloat, localY y: CGFloat,
-                      localGeometry geo: GeometryProxy) -> CGPoint {
-    let localPoint = CGPoint(x: x, y: y)
-    return geo.frame(in: .global).origin.applying(
-        .init(translationX: localPoint.x, y: localPoint.y)
-    )
+/// DamusVideoPlayer has the function of wrapping `AVPlayer` and exposing a control interface that integrates seamlessly with SwiftUI views
+///
+/// This is **NOT** a video player view. This is a headless video object concerned about the video and its playback. To display a video, you need `DamusVideoPlayerView`
+///
+/// **Implementation notes:**
+/// - `@MainActor` is needed because `@Published` properties need to be updated on the main thread.
+@MainActor final class DamusVideoPlayer: ObservableObject {
+    
+    // MARK: Immutable foundational instance members
+    
+    /// The URL of the video
+    let url: URL
+    /// The underlying AVPlayer that we are wrapping.
+    /// This is not public because we don't want any callers of this class controlling the `AVPlayer` directly, we want them to go through our interface
+    private let player: AVPlayer
+    
+    
+    // MARK: SwiftUI-friendly interface
+    
+    @Published var has_audio = false
+    @Published var is_live = false
+    @Binding var video_size: CGSize?
+    @Published var is_muted = true {
+        didSet {
+            if oldValue == is_muted { return }
+            player.isMuted = is_muted
+        }
+    }
+    @Published var is_loading = true
+    @Published var current_time: TimeInterval = .zero
+    @Published var is_playing = false {
+        didSet {
+            if oldValue == is_playing { return }
+            if is_playing {
+                player.play()
+            }
+            else {
+                player.pause()
+            }
+        }
+    }
+    @Published var is_editing_current_time = false {
+        didSet {
+            if oldValue == is_editing_current_time { return }
+            if !is_editing_current_time {
+                player.seek(to: CMTime(seconds: current_time, preferredTimescale: 60))
+            }
+        }
+    }
+    var duration: TimeInterval? {
+        return player.currentItem?.duration.seconds
+    }
+    
+    // MARK: Internal instance members
+    
+    private var cancellables = Set<AnyCancellable>()
+    private var videoSizeObserver: NSKeyValueObservation?
+    private var videoDurationObserver: NSKeyValueObservation?
+    private var videoCurrentTimeObserver: Any?
+    private var videoIsPlayingObserver: NSKeyValueObservation?
+    
+    
+    // MARK: - Initialization
+    
+    public init(url: URL, video_size: Binding<CGSize?>) {
+        self.url = url
+        self.player = AVPlayer(playerItem: AVPlayerItem(url: url))
+        _video_size = video_size
+        
+        Task {
+            await load()
+        }
+        
+        player.isMuted = is_muted
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(did_play_to_end),
+            name: Notification.Name.AVPlayerItemDidPlayToEndTime,
+            object: player.currentItem
+        )
+        
+        observeVideoSize()
+        observeDuration()
+        observeCurrentTime()
+        observeVideoIsPlaying()
+    }
+    
+    // MARK: - Observers
+    // Functions that allow us to observe certain variables and publish their changes for view updates
+    // These are all private because they are part of the internal logic
+    
+    private func observeVideoSize() {
+        videoSizeObserver = player.currentItem?.observe(\.presentationSize, options: [.new], changeHandler: { [weak self] (playerItem, change) in
+            guard let self else { return }
+            if let newSize = change.newValue, newSize != .zero {
+                DispatchQueue.main.async {
+                    self.video_size = newSize  // Update the bound value
+                }
+            }
+        })
+    }
+    
+    private func observeDuration() {
+        videoDurationObserver = player.currentItem?.observe(\.duration, options: [.new], changeHandler: { [weak self] (playerItem, change) in
+            guard let self else { return }
+            if let newDuration = change.newValue, newDuration != .zero {
+                DispatchQueue.main.async {
+                    self.is_live = newDuration == .indefinite
+                }
+            }
+        })
+    }
+    
+    private func observeCurrentTime() {
+        videoCurrentTimeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 1, preferredTimescale: 600), queue: .main) { [weak self] time in
+            guard let self else { return }
+            DispatchQueue.main.async {  // Must use main thread to update @Published properties
+                if self.is_editing_current_time == false {
+                    self.current_time = time.seconds
+                }
+            }
+        }
+    }
+    
+    private func observeVideoIsPlaying() {
+        videoIsPlayingObserver = player.observe(\.rate, changeHandler: { [weak self] (player, change) in
+            guard let self else { return }
+            guard let new_rate = change.newValue else { return }
+            DispatchQueue.main.async {
+                self.is_playing = new_rate > 0
+            }
+        })
+    }
+    
+    // MARK: - Other internal logic functions
+    
+    private func load() async {
+        has_audio = await self.video_has_audio()
+        is_loading = false
+    }
+    
+    private func video_has_audio() async -> Bool {
+        do {
+            let hasAudibleTracks = ((try await player.currentItem?.asset.loadMediaSelectionGroup(for: .audible)) != nil)
+            let tracks = try? await player.currentItem?.asset.load(.tracks)
+            let hasAudioTrack = tracks?.filter({ t in t.mediaType == .audio }).first != nil // Deal with odd cases of audio only MOV
+            return hasAudibleTracks || hasAudioTrack
+        } catch {
+            return false
+        }
+    }
+    
+    @objc private func did_play_to_end() {
+        player.seek(to: CMTime.zero)
+        player.play()
+    }
+    
+    // MARK: - Deinit
+    
+    deinit {
+        videoSizeObserver?.invalidate()
+        videoDurationObserver?.invalidate()
+        videoIsPlayingObserver?.invalidate()
+    }
+    
+    // MARK: - Convenience interface functions
+    
+    func play() {
+        self.is_playing = true
+    }
+    
+    func pause() {
+        self.is_playing = false
+    }
 }
 
-struct DamusVideoPlayer: View {
-    let url: URL
-    @StateObject var model: DamusVideoPlayerViewModel
-    let style: Style
-    @State var isVisible: Bool = false
-    /// The context this video player is in.
-    @Environment(\.video_focus_context) var focus_context
-    
-    init(url: URL, video_size: Binding<CGSize?>, coordinator: DamusVideoCoordinator, style: Style, focus_context: DamusVideoPlayerViewModel.FocusContext = .scroll_view_item) {
-        self.url = url
-        let mute: Bool?
-        switch style {
-            case .full, .no_controls:
-                mute = false
-            case .preview:
-                mute = nil
+extension DamusVideoPlayer {
+    struct BaseView: UIViewControllerRepresentable {
+        
+        let player: DamusVideoPlayer
+        let show_playback_controls: Bool
+        
+        func makeUIViewController(context: Context) -> AVPlayerViewController {
+            let controller = AVPlayerViewController()
+            controller.showsPlaybackControls = show_playback_controls
+            return controller
         }
-        _model = StateObject(wrappedValue: DamusVideoPlayerViewModel(url: url, video_size: video_size, coordinator: coordinator, mute: mute, focus_context: focus_context))
-        self.style = style
-    }
-    
-    var body: some View {
-        ZStack {
-            switch self.style {
-                case .full:
-                    DamusAVPlayerView(player: model.player, controller: model.player_view_controller, show_playback_controls: true)
-                case .preview(on_tap: let on_tap):
-                    DamusAVPlayerView(player: model.player, controller: model.player_view_controller, show_playback_controls: false)
-                        .simultaneousGesture(TapGesture().onEnded({
-                            on_tap?()
-                        }))
-                case .no_controls(on_tap: let on_tap):
-                    DamusAVPlayerView(player: model.player, controller: model.player_view_controller, show_playback_controls: false)
-                        .simultaneousGesture(TapGesture().onEnded({
-                            on_tap?()
-                        }))
-            }
-            
-            if model.is_loading {
-                ProgressView()
-                    .progressViewStyle(.circular)
-                    .tint(.white)
-                    .scaleEffect(CGSize(width: 1.5, height: 1.5))
-            }
-            
-            if case .preview = self.style {
-                if model.has_audio {
-                    mute_button
-                }
-            }
-            if model.is_live {
-                live_indicator
+        
+        func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
+            if uiViewController.player == nil {
+                uiViewController.player = player.player
             }
         }
-        .on_visibility_change(perform: { new_visibility in
-            model.set_view_is_visible(new_visibility)
-        }, method: self.visibility_tracking_method)
-    }
-    
-    private var visibility_tracking_method: VisibilityTracker.Method {
-        switch self.focus_context {
-            case .scroll_view_item:
-                return .standard
-            case .full_screen:
-                return .no_y_scroll_detection
-        }
-    }
-    
-    private var mute_icon: String {
-        !model.has_audio || model.is_muted ? "speaker.slash" : "speaker"
-    }
-    
-    private var mute_icon_color: Color {
-        model.has_audio ? .white : .red
-    }
-    
-    private var mute_button: some View {
-        HStack {
-            Spacer()
-            VStack {
-                Button {
-                    model.is_muted.toggle()
-                } label: {
-                    ZStack {
-                        Circle()
-                            .opacity(0.2)
-                            .frame(width: 32, height: 32)
-                            .foregroundColor(.black)
-                        
-                        Image(systemName: mute_icon)
-                            .padding()
-                            .foregroundColor(mute_icon_color)
-                    }
-                }
-                Spacer()
-            }
-        }
-    }
-    
-    private var live_indicator: some View {
-        VStack {
-            HStack {
-                Text("LIVE", comment: "Text indicator that the video is a livestream.")
-                    .bold()
-                    .foregroundColor(.red)
-                    .padding(.horizontal)
-                    .padding(.vertical, 5)
-                    .background(
-                        Capsule()
-                            .fill(Color.black.opacity(0.5))
-                    )
-                    .padding([.top, .leading])
-                Spacer()
-            }
-            Spacer()
-        }
-    }
-    
-    enum Style {
-        /// A full video player with playback controls
-        case full
-        /// A style suitable for muted, auto-playing videos on a feed
-        case preview(on_tap: (() -> Void)?)
-        /// A video player without any playback controls, suitable if using custom controls elsewhere.
-        case no_controls(on_tap: (() -> Void)?)
-    }
-}
-struct DamusVideoPlayer_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            DamusVideoPlayer(url: URL(string: "http://cdn.jb55.com/s/zaps-build.mp4")!, video_size: .constant(nil), coordinator: DamusVideoCoordinator(), style: .full)
-                .environmentObject(OrientationTracker())
-                .previewDisplayName("Full video player")
-            
-            DamusVideoPlayer(url: URL(string: "http://cdn.jb55.com/s/zaps-build.mp4")!, video_size: .constant(nil), coordinator: DamusVideoCoordinator(), style: .preview(on_tap: nil))
-                .environmentObject(OrientationTracker())
-                .previewDisplayName("Preview video player")
+        
+        static func dismantleUIViewController(_ uiViewController: AVPlayerViewController, coordinator: ()) {
+            uiViewController.player = nil
         }
     }
 }

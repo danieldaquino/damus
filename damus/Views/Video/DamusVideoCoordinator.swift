@@ -8,40 +8,42 @@
 import Combine
 import Foundation
 import SwiftUICore
+import AVFoundation
 
 struct VideoMetadata {
     let has_audio: Bool
     let size: CGSize
 }
 
-/// DamusVideoCoordinator is responsible for coordinating the various video players in the damus app.
+/// DamusVideoCoordinator is responsible for coordinating the various video players throughout the app, and providing a nicely orchestrated experience.
 /// The goals of this object are to:
-/// - ensure some video playing states (such as mute state) are consistent across different video player view instances of the same video
+/// - ensure some video playing states (such as mute state and current time) are consistent across different video player view instances of the same video
 /// - ensure only one video is playing at a time
 /// - Provide global video playback controls to control the currently playing video
 ///
-/// This is used as a singleton object (one per DamusState), which gets passed around to video players, which can then interact with the coordinator to ensure an app-wide coherent experience
+/// This is used as a singleton object (one global object per `DamusState`), which gets passed around to video players, which can then interact with the coordinator to ensure an app-wide coherent experience
 ///
-/// A good analogy here is that video players and their models/states are like individual car drivers, and this coordinator is like a traffic control person that ensures cars don't crash each other.
+/// A good analogy here is that video players and their models/states are like individual cars and their drivers, and this coordinator is like a traffic control person + traffic lights that ensures cars don't crash each other.
 final class DamusVideoCoordinator: ObservableObject {
     // MARK: - States
     
     // MARK: State and information about each video
     
     private var mute_states: [URL: Bool] = [:]
-    private var current_time_states: [URL: TimeInterval] = [:]
     private var metadatas: [URL: VideoMetadata] = [:]
     
-    // MARK: Visible video player stacks
-    // The stacks of video players that have marked themselves as visible on the user screen.
+    private var players: [URL: DamusVideoPlayer] = [:]
+    
+    // MARK: Main stage requests from player views
+    // The stacks of video player views that have marked themselves as visible on the user screen.
     //
     // Because our visibility tracker cannot tell if a player is obscured by a view in front of it,
     // we need to implement two stacks representing the different view layers:
     // - Normal layer: For timelines, threads, etc
     // - Full screen layer: For full screen views
     
-    private var visible_players_stack: [DamusVideoPlayerViewModel] = []
-    private var visible_full_screen_players_stack: [DamusVideoPlayerViewModel] = []
+    private var normal_layer_main_stage_requests: [MainStageRequest] = []
+    private var full_screen_layer_stage_requests: [MainStageRequest] = []
     
     // MARK: Coordinator state
     // Members representing the state of the coordinator itself
@@ -54,14 +56,12 @@ final class DamusVideoCoordinator: ObservableObject {
     
     /// The video currently in focus
     /// This can only be chosen by the coordinator. To get a video in focus, use one of the instance methods that provide an interface for focus control.
-    @Published private(set) var focused_video: DamusVideoPlayerViewModel? {
+    @MainActor
+    @Published private(set) var focused_video: DamusVideoPlayer? {
         didSet {
-            DispatchQueue.main.async { [self] in
-                if oldValue?.id == focused_video?.id { return }
-                oldValue?.pause()
-                focused_video?.play()
-                Log.info("VIDEO_COORDINATOR: %s paused, playing %s", for: .video_coordination, oldValue?.id.uuidString ?? "no video", focused_video?.id.uuidString ?? "no video")
-            }
+            oldValue?.pause()
+            focused_video?.play()
+            Log.info("VIDEO_COORDINATOR: %s paused, playing %s", for: .video_coordination, oldValue?.url.absoluteString ?? "no video", focused_video?.url.absoluteString ?? "no video")
         }
     }
     
@@ -77,12 +77,15 @@ final class DamusVideoCoordinator: ObservableObject {
         mute_states[url] ?? true
     }
     
-    func current_time(for url: URL) -> TimeInterval? {
-        return current_time_states[url]
-    }
-    
-    func set_current_time(for url: URL, time: TimeInterval) {
-        current_time_states[url] = time
+    @MainActor
+    func get_player(for url: URL) -> DamusVideoPlayer {
+        if let player = self.players[url] {
+            return player
+        }
+        let player = DamusVideoPlayer(url: url, video_size: .constant(nil))
+        self.players[url] = player
+        player.is_muted = self.should_mute_video(url: url)
+        return player
     }
     
     func set_metadata(_ metadata: VideoMetadata, url: URL) {
@@ -101,23 +104,23 @@ final class DamusVideoCoordinator: ObservableObject {
     // This portion provides an interface for video players to signal their visibility changes,
     // and implements some coordination logic to choose which video to play and pause at a given time.
     
-    func register_visible_player(_ player: DamusVideoPlayerViewModel) {
-        Log.info("VIDEO_COORDINATOR: %s marked visible", for: .video_coordination, player.id.uuidString)
-        switch player.focus_context {
-            case .scroll_view_item:
-                if visible_players_stack.first(where: { $0.id == player.id }) != nil { return } // Entry exists already
-                visible_players_stack.append(player)
-            case .full_screen:
-                if visible_full_screen_players_stack.first(where: { $0.id == player.id }) != nil { return } // Entry exists already
-                visible_full_screen_players_stack.append(player)
+    func request_main_stage(_ request: MainStageRequest) {
+        Log.info("VIDEO_COORDINATOR: %s requested main stage", for: .video_coordination, request.requestor_id.uuidString)
+        switch request.layer_context {
+            case .normal_layer:
+                if normal_layer_main_stage_requests.first(where: { $0.requestor_id == request.requestor_id }) != nil { return } // Entry exists already
+                normal_layer_main_stage_requests.append(request)
+            case .full_screen_layer:
+                if full_screen_layer_stage_requests.first(where: { $0.requestor_id == request.requestor_id }) != nil { return } // Entry exists already
+                full_screen_layer_stage_requests.append(request)
         }
         self.select_focused_video()
     }
     
-    func register_player_is_out_of_view(_ player: DamusVideoPlayerViewModel) {
-        Log.info("VIDEO_COORDINATOR: %s marked hidden", for: .video_coordination, player.id.uuidString)
-        visible_players_stack.removeAll(where: { $0.id == player.id })
-        visible_full_screen_players_stack.removeAll(where: { $0.id == player.id })
+    func give_up_main_stage(request_id: UUID) {
+        Log.info("VIDEO_COORDINATOR: %s gave up the main stage", for: .video_coordination, request_id.uuidString)
+        normal_layer_main_stage_requests.removeAll(where: { $0.requestor_id == request_id })
+        full_screen_layer_stage_requests.removeAll(where: { $0.requestor_id == request_id })
         self.select_focused_video()
     }
     
@@ -138,10 +141,37 @@ final class DamusVideoCoordinator: ObservableObject {
             // The reason is that:
             // - both a LIFO stack and a FIFO queue are decent at selecting videos when scrolling on the Y axis (timeline),
             // - The LIFO stack is better at selecting videos when navigating on the Z axis (e.g. opening and closing full screen covers or sheets), since those sheets operate like a stack as well
-            self.focused_video = self.full_screen_mode ? self.visible_full_screen_players_stack.last : self.visible_players_stack.last
+            let winning_request = self.full_screen_mode ? self.full_screen_layer_stage_requests.last : self.normal_layer_main_stage_requests.last
+            self.focused_video = winning_request?.player
+            winning_request?.main_stage_granted?()
         }
-        Log.info("VIDEO_COORDINATOR: full_screen stack: %s", for: .video_coordination, visible_full_screen_players_stack.map({ $0.id.uuidString }).debugDescription)
-        Log.info("VIDEO_COORDINATOR: stack: %s", for: .video_coordination, visible_players_stack.map({ $0.id.uuidString }).debugDescription)
+        Log.info("VIDEO_COORDINATOR: fullscreen layer main stage request stack: %s", for: .video_coordination, full_screen_layer_stage_requests.map({ $0.requestor_id.uuidString }).debugDescription)
+        Log.info("VIDEO_COORDINATOR: normal layer main stage request stack: %s", for: .video_coordination, normal_layer_main_stage_requests.map({ $0.requestor_id.uuidString }).debugDescription)
         Log.info("VIDEO_COORDINATOR: full_screen_mode: %s", for: .video_coordination, String(describing: self.full_screen_mode))
     }
+    
+    // MARK: - Helper structures
+    
+    struct MainStageRequest {
+        var requestor_id: UUID
+        var layer_context: ViewLayerContext
+        var player: DamusVideoPlayer
+        var main_stage_granted: (() -> Void)?
+    }
+}
+
+extension EnvironmentValues {
+    @Entry var view_layer_context: ViewLayerContext? = nil
+}
+
+
+/// Context about the layer a view finds itself in
+/// This communicates to a view (e.g. a video player) context about whether it is being displayed inside a full screen layer, or a normal layer
+enum ViewLayerContext {
+    /// This is used for video players placed in a scroll view, such as on a timeline or a thread view.
+    /// It uses Y coordinates to help determine when to request the coordinator for focus, and has a normal priority in getting the focus
+    case normal_layer
+    /// This is used for video players being displayed full screen
+    /// It uses a normal appear/disappear mechanism for better stability accross device orientation changes, and has a higher priority to get focus than other items.
+    case full_screen_layer
 }
