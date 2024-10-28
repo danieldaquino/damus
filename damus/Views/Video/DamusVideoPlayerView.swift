@@ -64,16 +64,16 @@ struct DamusVideoPlayerView: View {
             switch self.style {
                 case .full:
                     DamusVideoPlayer.BaseView(player: model, show_playback_controls: true)
-                case .preview(on_tap: let on_tap):
-                    DamusVideoPlayer.BaseView(player: model, show_playback_controls: false)
-                        .highPriorityGesture(TapGesture().onEnded({
-                            on_tap?()
-                        }))
-                case .no_controls(on_tap: let on_tap):
-                    DamusVideoPlayer.BaseView(player: model, show_playback_controls: false)
-                        .highPriorityGesture(TapGesture().onEnded({
-                            on_tap?()
-                        }))
+                case .preview(on_tap: let on_tap), .no_controls(on_tap: let on_tap):
+                    if let on_tap {
+                        DamusVideoPlayer.BaseView(player: model, show_playback_controls: false)
+                            .highPriorityGesture(TapGesture().onEnded({
+                                on_tap()
+                            }))
+                    }
+                    else {
+                        DamusVideoPlayer.BaseView(player: model, show_playback_controls: false)
+                    }
             }
             
             if model.is_loading {
