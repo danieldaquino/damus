@@ -343,7 +343,7 @@ enum UrlType {
     }
 }
 
-enum MediaUrl {
+enum MediaUrl: Equatable {
     case image(URL)
     case video(URL)
     

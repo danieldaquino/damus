@@ -57,6 +57,27 @@ enum Sheets: Identifiable {
     }
 }
 
+enum FullScreenItem: Identifiable, Equatable {
+    static func == (lhs: FullScreenItem, rhs: FullScreenItem) -> Bool {
+        return lhs.id == rhs.id
+    }
+    
+    case full_screen_carousel(urls: [MediaUrl], selectedIndex: Binding<Int>)
+    
+    var id: String {
+        switch self {
+            case .full_screen_carousel(let urls, let selectedIndex): return "full_screen_carousel:\(urls.map(\.url))"
+        }
+    }
+    
+    func view(damus_state: DamusState) -> some View {
+        switch self {
+            case .full_screen_carousel(let urls, let selectedIndex):
+                return FullScreenCarouselView<AnyView>(video_coordinator: damus_state.video, urls: urls, settings: damus_state.settings, selectedIndex: selectedIndex)
+        }
+    }
+}
+
 func present_sheet(_ sheet: Sheets) {
     notify(.present_sheet(sheet))
 }
@@ -78,6 +99,7 @@ struct ContentView: View {
     @Environment(\.scenePhase) var scenePhase
     
     @State var active_sheet: Sheets? = nil
+    @State var active_full_screen_item: FullScreenItem? = nil
     @State var damus_state: DamusState!
     @State var menu_subtitle: String? = nil
     @SceneStorage("ContentView.selected_timeline") var selected_timeline: Timeline = .home {
@@ -246,6 +268,9 @@ struct ContentView: View {
                 }
                 .navigationViewStyle(.stack)
                 .environmentObject(damus.video)
+                .damus_full_screen_cover($active_full_screen_item, damus_state: damus, content: { item in
+                    return item.view(damus_state: damus)
+                })
                 .overlay(alignment: .bottom) {
                     if !hide_bar {
                         if !isSideBarOpened {
@@ -421,6 +446,9 @@ struct ContentView: View {
         }
         .onReceive(handle_notify(.present_sheet)) { sheet in
             self.active_sheet = sheet
+        }
+        .onReceive(handle_notify(.present_full_screen_item)) { item in
+            self.active_full_screen_item = item
         }
         .onReceive(handle_notify(.zapping)) { zap_ev in
             guard !zap_ev.is_custom else {

@@ -183,14 +183,17 @@ struct ImageCarousel<Content: View>: View {
             case .image(let url):
                 Img(geo: geo, url: url, index: index)
                     .onTapGesture {
-                        model.open_sheet = true
+                        present(full_screen_item: .full_screen_carousel(urls: urls, selectedIndex: $model.selectedIndex))
                     }
             case .video(let url):
                     DamusVideoPlayerView(
                         url: url,
                         video_size: $model.video_size,
                         coordinator: state.video,
-                        style: .preview(on_tap: { model.open_sheet = true })
+                        style: .preview(on_tap: {
+                            // model.open_sheet = true
+                            present(full_screen_item: .full_screen_carousel(urls: urls, selectedIndex: $model.selectedIndex))
+                        })
                     )
                     .onChange(of: model.video_size) { size in
                         guard let size else { return }
@@ -260,18 +263,18 @@ struct ImageCarousel<Content: View>: View {
             }
         }
         .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-        .damus_full_screen_cover($model.open_sheet, damus_state: state) {
-            if let content {
-                FullScreenCarouselView<Content>(video_coordinator: state.video, urls: urls, settings: state.settings, selectedIndex: $model.selectedIndex) {
-                    content({ // Dismiss closure
-                        model.open_sheet = false
-                    })
-                }
-            }
-            else {
-                FullScreenCarouselView<AnyView>(video_coordinator: state.video, urls: urls, settings: state.settings, selectedIndex: $model.selectedIndex)
-            }
-        }
+//        .damus_full_screen_cover($model.open_sheet, damus_state: state) {
+//            if let content {
+//                FullScreenCarouselView<Content>(video_coordinator: state.video, urls: urls, settings: state.settings, selectedIndex: $model.selectedIndex) {
+//                    content({ // Dismiss closure
+//                        model.open_sheet = false
+//                    })
+//                }
+//            }
+//            else {
+//                FullScreenCarouselView<AnyView>(video_coordinator: state.video, urls: urls, settings: state.settings, selectedIndex: $model.selectedIndex)
+//            }
+//        }
         .frame(height: height)
         .onChange(of: model.selectedIndex) { value in
             model.selectedIndex = value

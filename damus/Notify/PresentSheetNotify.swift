@@ -23,3 +23,28 @@ extension Notifications {
         .init(.init(payload: sheet))
     }
 }
+
+
+
+
+
+struct PresentFullScreenItemNotify: Notify {
+    typealias Payload = FullScreenItem
+    var payload: Payload
+}
+
+extension NotifyHandler {
+    static var present_full_screen_item: NotifyHandler<PresentFullScreenItemNotify> {
+        .init()
+    }
+}
+
+extension Notifications {
+    static func present_full_screen_item(_ item: FullScreenItem) -> Notifications<PresentFullScreenItemNotify> {
+        .init(.init(payload: item))
+    }
+}
+
+func present(full_screen_item: FullScreenItem) {
+    notify(.present_full_screen_item(full_screen_item))
+}
