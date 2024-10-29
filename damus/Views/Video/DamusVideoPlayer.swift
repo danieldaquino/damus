@@ -32,7 +32,7 @@ import SwiftUI
     
     @Published var has_audio = false
     @Published var is_live = false
-    @Binding var video_size: CGSize?
+    @Published var video_size: CGSize?
     @Published var is_muted = true {
         didSet {
             if oldValue == is_muted { return }
@@ -75,10 +75,10 @@ import SwiftUI
     
     // MARK: - Initialization
     
-    public init(url: URL, video_size: Binding<CGSize?>) {
+    public init(url: URL) {
         self.url = url
         self.player = AVPlayer(playerItem: AVPlayerItem(url: url))
-        _video_size = video_size
+        self.video_size = nil
         
         Task {
             await load()

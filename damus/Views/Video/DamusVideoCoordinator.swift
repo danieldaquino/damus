@@ -10,11 +10,6 @@ import Foundation
 import SwiftUICore
 import AVFoundation
 
-struct VideoMetadata {
-    let has_audio: Bool
-    let size: CGSize
-}
-
 /// DamusVideoCoordinator is responsible for coordinating the various video players throughout the app, and providing a nicely orchestrated experience.
 /// The goals of this object are to:
 /// - ensure some video playing states (such as mute state and current time) are consistent across different video player view instances of the same video
@@ -28,10 +23,6 @@ final class DamusVideoCoordinator: ObservableObject {
     // MARK: - States
     
     // MARK: State and information about each video
-    
-    private var mute_states: [URL: Bool] = [:]
-    private var metadatas: [URL: VideoMetadata] = [:]
-    
     private var players: [URL: DamusVideoPlayer] = [:]
     
     // MARK: Main stage requests from player views
@@ -66,39 +57,18 @@ final class DamusVideoCoordinator: ObservableObject {
     }
     
     // MARK: - Interface to set and fetch information about each different video
-    
-    func set_should_mute_video(url: URL, state: Bool) {
-        mute_states[url] = state
-        
-        objectWillChange.send()
-    }
-    
-    func should_mute_video(url: URL) -> Bool {
-        mute_states[url] ?? true
-    }
+
     
     @MainActor
     func get_player(for url: URL) -> DamusVideoPlayer {
         if let player = self.players[url] {
             return player
         }
-        let player = DamusVideoPlayer(url: url, video_size: .constant(nil))
+        let player = DamusVideoPlayer(url: url)
         self.players[url] = player
-        player.is_muted = self.should_mute_video(url: url)
         return player
     }
-    
-    func set_metadata(_ metadata: VideoMetadata, url: URL) {
-        metadatas[url] = metadata
-    }
-    
-    func metadata(for url: URL) -> VideoMetadata? {
-        metadatas[url]
-    }
-    
-    func size_for_url(_ url: URL) -> CGSize? {
-        metadatas[url]?.size
-    }
+
     
     // MARK: - Interface for video players to come to the foreground
     // This portion provides an interface for video players to signal their visibility changes,

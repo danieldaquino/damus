@@ -52,9 +52,16 @@ struct DamusVideoPlayerView: View {
         return view_layer_context ?? .normal_layer
     }
     
-    init(url: URL, video_size: Binding<CGSize?>, coordinator: DamusVideoCoordinator, style: Style) {
+    init(url: URL, coordinator: DamusVideoCoordinator, style: Style) {
         self.url = url
         self.model = coordinator.get_player(for: url)
+        self.video_coordinator = coordinator
+        self.style = style
+    }
+    
+    init(model: DamusVideoPlayer, coordinator: DamusVideoCoordinator, style: Style) {
+        self.url = model.url
+        self.model = model
         self.video_coordinator = coordinator
         self.style = style
     }
@@ -179,12 +186,12 @@ struct DamusVideoPlayerView: View {
 struct DamusVideoPlayer_Previews: PreviewProvider {
     static var previews: some View {
         Group {
-            DamusVideoPlayerView(url: URL(string: "http://cdn.jb55.com/s/zaps-build.mp4")!, video_size: .constant(nil), coordinator: DamusVideoCoordinator(), style: .full)
+            DamusVideoPlayerView(url: URL(string: "http://cdn.jb55.com/s/zaps-build.mp4")!, coordinator: DamusVideoCoordinator(), style: .full)
                 .environmentObject(OrientationTracker())
                 .environmentObject(DamusVideoCoordinator())
                 .previewDisplayName("Full video player")
             
-            DamusVideoPlayerView(url: URL(string: "http://cdn.jb55.com/s/zaps-build.mp4")!, video_size: .constant(nil), coordinator: DamusVideoCoordinator(), style: .preview(on_tap: nil))
+            DamusVideoPlayerView(url: URL(string: "http://cdn.jb55.com/s/zaps-build.mp4")!, coordinator: DamusVideoCoordinator(), style: .preview(on_tap: nil))
                 .environmentObject(OrientationTracker())
                 .environmentObject(DamusVideoCoordinator())
                 .previewDisplayName("Preview video player")

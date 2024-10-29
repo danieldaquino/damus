@@ -53,7 +53,7 @@ struct ImageContainerView: View {
                 case .image(let url):
                     Img(url: url)
                 case .video(let url):
-                    DamusVideoPlayerView(url: url, video_size: .constant(nil), coordinator: video_coordinator, style: .no_controls(on_tap: nil))
+                    DamusVideoPlayerView(url: url, coordinator: video_coordinator, style: .no_controls(on_tap: nil))
             }
         }
     }
