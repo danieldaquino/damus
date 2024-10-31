@@ -134,20 +134,19 @@ struct DamusVideoPlayerView: View {
         HStack {
             Spacer()
             VStack {
-                Button {
-                    model.is_muted.toggle()
-                } label: {
-                    ZStack {
-                        Circle()
-                            .opacity(0.2)
-                            .frame(width: 32, height: 32)
-                            .foregroundColor(.black)
-                        
-                        Image(systemName: mute_icon)
-                            .padding()
-                            .foregroundColor(mute_icon_color)
-                    }
+                ZStack {
+                    Circle()
+                        .opacity(0.2)
+                        .frame(width: 32, height: 32)
+                        .foregroundColor(.black)
+    
+                    Image(systemName: mute_icon)
+                        .padding()
+                        .foregroundColor(mute_icon_color)
                 }
+                .highPriorityGesture(TapGesture().onEnded {
+                    model.is_muted.toggle()
+                })
                 Spacer()
             }
         }
