@@ -8,13 +8,17 @@
 import Foundation
 
 /// Used for holding back events until they're ready to be displayed
-class EventHolder: ObservableObject, ScrollQueue {
+actor EventHolder: ObservableObject, ScrollQueue {
     private var has_event = Set<NoteId>()
-    @Published var events: [NostrEvent]
+
+    @MainActor @Published var events: [NostrEvent]
+    
     var incoming: [NostrEvent]
-    var should_queue = false
+    
+    @MainActor var should_queue = false
     var on_queue: ((NostrEvent) -> Void)?
     
+    @MainActor
     func set_should_queue(_ val: Bool) {
         self.should_queue = val
     }
@@ -27,7 +31,7 @@ class EventHolder: ObservableObject, ScrollQueue {
         events + incoming
     }
     
-    init(events: [NostrEvent] = [], incoming: [NostrEvent] = [], on_queue: ((NostrEvent) -> ())? = nil) {
+    init(events: [NostrEvent] = [], incoming: [NostrEvent] = [], on_queue: ((NostrEvent) -> ())? = nil) async {
         self.events = events
         self.incoming = incoming
         self.on_queue = on_queue
@@ -38,8 +42,8 @@ class EventHolder: ObservableObject, ScrollQueue {
         self.incoming = self.incoming.filter(isIncluded)
     }
     
-    func insert(_ ev: NostrEvent) -> Bool {
-        if should_queue {
+    func insert(_ ev: NostrEvent) async -> Bool {
+        if await should_queue {
             return insert_queued(ev)
         } else {
             return insert_immediate(ev)

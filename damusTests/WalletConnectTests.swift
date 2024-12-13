@@ -79,7 +79,7 @@ final class WalletConnectTests: XCTestCase {
         XCTAssertEqual(url_2.relay.url.absoluteString, relay_2)
     }
 
-    func testNWCEphemeralRelay() {
+    func testNWCEphemeralRelay() async {
         let sec = "8ba3a6b3b57d0f4211bb1ea4d8d1e351a367e9b4ea694746e0a4a452b2bc4d37"
         let pk =  "89446b900c70d62438dcf66756405eea6225ad94dc61f3856f62f9699111a9a6"
         let nwc = WalletConnectURL(str: "nostrwalletconnect://\(pk)?relay=ws://127.0.0.1&secret=\(sec)&lud16=jb55@jb55.com")!
@@ -87,12 +87,15 @@ final class WalletConnectTests: XCTestCase {
         let pool = RelayPool(ndb: .empty)
         let box = PostBox(pool: pool)
         
-        nwc_pay(url: nwc, pool: pool, post: box, invoice: "invoice")
+        await nwc_pay(url: nwc, pool: pool, post: box, invoice: "invoice")
         
-        XCTAssertEqual(pool.our_descriptors.count, 0)
-        XCTAssertEqual(pool.all_descriptors.count, 1)
-        XCTAssertEqual(pool.all_descriptors[0].variant, .nwc)
-        XCTAssertEqual(pool.all_descriptors[0].url.url.absoluteString, "ws://127.0.0.1")
+        let our_descriptors_count = await pool.our_descriptors.count
+        let all_descriptors = await pool.all_descriptors
+        
+        XCTAssertEqual(our_descriptors_count, 0)
+        XCTAssertEqual(all_descriptors.count, 1)
+        XCTAssertEqual(all_descriptors[0].variant, .nwc)
+        XCTAssertEqual(all_descriptors[0].url.url.absoluteString, "ws://127.0.0.1")
         XCTAssertEqual(box.events.count, 1)
         let ev = box.events.first!.value
         XCTAssertEqual(ev.skip_ephemeral, false)

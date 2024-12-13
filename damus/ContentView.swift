@@ -302,14 +302,16 @@ struct ContentView: View {
         .ignoresSafeArea(.keyboard)
         .edgesIgnoringSafeArea(hide_bar ? [.bottom] : [])
         .onAppear() {
-            Task { await self.connect() }
-            try? AVAudioSession.sharedInstance().setCategory(AVAudioSession.Category.playback, mode: .default, options: .mixWithOthers)
-            setup_notifications()
-            if !hasSeenOnboardingSuggestions || damus_state!.settings.always_show_onboarding_suggestions {
-                active_sheet = .onboardingSuggestions
-                hasSeenOnboardingSuggestions = true
+            Task {
+                await self.connect()
+                try? AVAudioSession.sharedInstance().setCategory(AVAudioSession.Category.playback, mode: .default, options: .mixWithOthers)
+                setup_notifications()
+                if !hasSeenOnboardingSuggestions || damus_state!.settings.always_show_onboarding_suggestions {
+                    active_sheet = .onboardingSuggestions
+                    hasSeenOnboardingSuggestions = true
+                }
+                self.appDelegate?.state = damus_state
             }
-            self.appDelegate?.state = damus_state
         }
         .sheet(item: $active_sheet) { item in
             switch item {

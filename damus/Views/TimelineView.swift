@@ -89,7 +89,7 @@ struct TimelineView<Content: View>: View {
                     }
                     .background {
                         GeometryReader { proxy -> Color in
-                            handle_scroll_queue(proxy, queue: self.events)
+                            self.events.handle_scroll_queue(proxy)
                             return Color.clear
                         }
                     }
@@ -115,18 +115,23 @@ struct TimelineView_Previews: PreviewProvider {
 }
 
 
-protocol ScrollQueue {
+protocol ScrollQueue: Actor {
+    @MainActor
     var should_queue: Bool { get }
+    @MainActor
     func set_should_queue(_ val: Bool)
 }
-    
-func handle_scroll_queue(_ proxy: GeometryProxy, queue: ScrollQueue) {
-    let offset = -proxy.frame(in: .named("scroll")).origin.y
-    guard offset >= 0 else {
-        return
-    }
-    let val = offset > 0
-    if queue.should_queue != val {
-        queue.set_should_queue(val)
+
+extension ScrollQueue {
+    @MainActor
+    func handle_scroll_queue(_ proxy: GeometryProxy) {
+        let offset = -proxy.frame(in: .named("scroll")).origin.y
+        guard offset >= 0 else {
+            return
+        }
+        let val = offset > 0
+        if self.should_queue != val {
+            self.set_should_queue(val)
+        }
     }
 }

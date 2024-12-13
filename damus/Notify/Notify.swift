@@ -31,6 +31,7 @@ struct Notifications<T: Notify> {
 
 struct NotifyHandler<T> { }
 
+@MainActor  // Publishing changes must be done from main thread
 func notify<T: Notify>(_ notify: Notifications<T>) {
     let notify = notify.notify
     NotificationCenter.default.post(name: T.name, object: notify.payload)
