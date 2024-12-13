@@ -85,7 +85,9 @@ class HomeModel: ContactsDelegate {
         self.damus_state = DamusState.empty
         self.setup_debouncer()
         filter_events()
-        events.on_queue = preloader
+        Task {
+            await events.set(on_queue: preloader)
+        }
         //self.events = EventHolder(on_queue: preloader)
     }
     

@@ -10,7 +10,7 @@ import Network
 
 struct RelayHandler {
     let sub_id: String
-    let callback: (RelayURL, NostrConnectionEvent) -> ()
+    let callback: (RelayURL, NostrConnectionEvent) async -> ()
 }
 
 struct QueuedRequest {
@@ -95,7 +95,7 @@ class RelayPool {
         }
     }
 
-    func register_handler(sub_id: String, handler: @escaping (RelayURL, NostrConnectionEvent) -> ()) {
+    func register_handler(sub_id: String, handler: @escaping (RelayURL, NostrConnectionEvent) async -> ()) {
         for handler in handlers {
             // don't add duplicate handlers
             if handler.sub_id == sub_id {
@@ -196,7 +196,7 @@ class RelayPool {
         self.send(.unsubscribe(sub_id), to: to)
     }
 
-    func subscribe(sub_id: String, filters: [NostrFilter], handler: @escaping (RelayURL, NostrConnectionEvent) -> (), to: [RelayURL]? = nil) {
+    func subscribe(sub_id: String, filters: [NostrFilter], handler: @escaping (RelayURL, NostrConnectionEvent) async -> (), to: [RelayURL]? = nil) {
         register_handler(sub_id: sub_id, handler: handler)
         send(.subscribe(.init(filters: filters, sub_id: sub_id)), to: to)
     }
@@ -348,7 +348,7 @@ class RelayPool {
         }
 
         for handler in handlers {
-            handler.callback(relay_id, event)
+            Task { await handler.callback(relay_id, event) }
         }
     }
 }

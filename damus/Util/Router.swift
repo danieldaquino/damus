@@ -192,7 +192,7 @@ enum Route: Hashable {
             hasher.combine(reposts.target)
         case .QuoteReposts(let evs_model):
             hasher.combine("quote_reposts")
-            hasher.combine(evs_model.events.events.count)
+            hasher.combine(evs_model.events.id)
         case .Zaps(let target):
             hasher.combine("zaps")
             hasher.combine(target.id)

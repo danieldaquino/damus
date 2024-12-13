@@ -24,6 +24,7 @@ class ProfileModel: ObservableObject, Equatable {
     var prof_subid = UUID().description
     var findRelay_subid = UUID().description
     
+    @MainActor
     init(pubkey: Pubkey, damus: DamusState) {
         self.pubkey = pubkey
         self.damus = damus
@@ -91,7 +92,7 @@ class ProfileModel: ObservableObject, Equatable {
         self.relays = decode_json_relays(ev.content)
     }
     
-    func add_event(_ ev: NostrEvent) {
+    func add_event(_ ev: NostrEvent) async {
         guard ev.should_show_event else {
             return
         }
@@ -100,7 +101,7 @@ class ProfileModel: ObservableObject, Equatable {
             return
         }
         if ev.is_textlike || ev.known_kind == .boost {
-            if self.events.insert(ev) {
+            if await self.events.insert(ev) {
                 self.objectWillChange.send()
             }
         } else if ev.known_kind == .contacts {
@@ -109,7 +110,7 @@ class ProfileModel: ObservableObject, Equatable {
         seen_event.insert(ev.id)
     }
 
-    private func handle_event(relay_id: RelayURL, ev: NostrConnectionEvent) {
+    private func handle_event(relay_id: RelayURL, ev: NostrConnectionEvent) async {
         switch ev {
         case .ws_event:
             return
@@ -126,14 +127,14 @@ class ProfileModel: ObservableObject, Equatable {
                 // See https://github.com/damus-io/damus/issues/1846 for more information
                 guard self.pubkey == ev.pubkey else { break }
 
-                add_event(ev)
+                await add_event(ev)
             case .notice:
                 break
                 //notify(.notice, notice)
             case .eose:
                 guard let txn = NdbTxn(ndb: damus.ndb) else { return }
                 if resp.subid == sub_id {
-                    load_profiles(context: "profile", profiles_subid: prof_subid, relay_id: relay_id, load: .from_events(events.events), damus_state: damus, txn: txn)
+                    await load_profiles(context: "profile", profiles_subid: prof_subid, relay_id: relay_id, load: .from_events(events.events), damus_state: damus, txn: txn)
                 }
                 progress += 1
                 break

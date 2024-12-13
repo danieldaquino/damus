@@ -8,13 +8,18 @@
 import Foundation
 
 /// Used for holding back events until they're ready to be displayed
+@MainActor
 class EventHolder: ObservableObject, ScrollQueue {
     private var has_event = Set<NoteId>()
     @Published private(set) var events: [NostrEvent]
     var incoming: [NostrEvent]
     var should_queue = false
     var on_queue: ((NostrEvent) -> Void)?
+    let id: UUID = UUID()
     
+    func set(on_queue: ((NostrEvent) -> Void)?) {
+        self.on_queue = on_queue
+    }
     func set_should_queue(_ val: Bool) {
         self.should_queue = val
     }

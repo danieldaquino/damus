@@ -66,7 +66,7 @@ class SearchModel: ObservableObject {
         }
     }
 
-    func handle_event(relay_id: RelayURL, ev: NostrConnectionEvent) {
+    func handle_event(relay_id: RelayURL, ev: NostrConnectionEvent) async {
         let (sub_id, done) = handle_subid_event(pool: state.pool, relay_id: relay_id, ev: ev) { sub_id, ev in
             if ev.is_textlike && ev.should_show_event {
                 self.add_event(ev)
@@ -81,7 +81,7 @@ class SearchModel: ObservableObject {
         
         if sub_id == self.sub_id {
             guard let txn = NdbTxn(ndb: state.ndb) else { return }
-            load_profiles(context: "search", profiles_subid: self.profiles_subid, relay_id: relay_id, load: .from_events(self.events.all_events), damus_state: state, txn: txn)
+            load_profiles(context: "search", profiles_subid: self.profiles_subid, relay_id: relay_id, load: .from_events(await self.events.all_events), damus_state: state, txn: txn)
         }
     }
 }
