@@ -63,10 +63,12 @@ struct ReportView: View {
             return
         }
         
-        postbox.send(ev)
-        
-        report_sent = true
-        report_id = bech32_note_id(ev.id)
+        Task {
+            await postbox.send(ev)
+            
+            report_sent = true
+            report_id = bech32_note_id(ev.id)
+        }
     }
 
     var send_report_button_text: String {

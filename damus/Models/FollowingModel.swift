@@ -34,7 +34,7 @@ class FollowingModel {
         return f
     }
     
-    func subscribe<Y>(txn: NdbTxn<Y>) {
+    func subscribe<Y>(txn: NdbTxn<Y>) async {
         let filter = get_filter(txn: txn)
         if (filter.authors?.count ?? 0) == 0 {
             needs_sub = false
@@ -42,15 +42,15 @@ class FollowingModel {
         }
         let filters = [filter]
         //print_filters(relay_id: "following", filters: [filters])
-        self.damus_state.pool.subscribe(sub_id: sub_id, filters: filters, handler: handle_event)
+        await self.damus_state.pool.subscribe(sub_id: sub_id, filters: filters, handler: handle_event)
     }
     
-    func unsubscribe() {
+    func unsubscribe() async {
         if !needs_sub {
             return
         }
         print("unsubscribing from following \(sub_id)")
-        self.damus_state.pool.unsubscribe(sub_id: sub_id)
+        await self.damus_state.pool.unsubscribe(sub_id: sub_id)
     }
 
     func handle_event(relay_id: RelayURL, ev: NostrConnectionEvent) {

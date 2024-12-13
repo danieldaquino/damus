@@ -213,7 +213,7 @@ struct ProfileView: View {
                         }
 
                         damus_state.mutelist_manager.set_mutelist(new_ev)
-                        damus_state.postbox.send(new_ev)
+                        Task { await damus_state.postbox.send(new_ev) }
                     }
                 } else {
                     Button(NSLocalizedString("Mute", comment: "Button to mute a profile"), role: .destructive) {
@@ -386,7 +386,7 @@ struct ProfileView: View {
                         .onTapGesture {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             followers.contacts = []
-                            followers.subscribe()
+                            Task { await followers.subscribe() }
                         }
                 }
 
@@ -506,12 +506,12 @@ struct ProfileView: View {
             }
             .onAppear() {
                 check_nip05_validity(pubkey: self.profile.pubkey, profiles: self.damus_state.profiles)
-                profile.subscribe()
+                Task { await profile.subscribe() }
                 //followers.subscribe()
             }
             .onDisappear {
-                profile.unsubscribe()
-                followers.unsubscribe()
+                Task { await profile.unsubscribe() }
+                Task { await followers.unsubscribe() }
                 // our profilemodel needs a bit more help
             }
             .sheet(isPresented: $show_share_sheet) {

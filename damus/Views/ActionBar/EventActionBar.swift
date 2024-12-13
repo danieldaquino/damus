@@ -82,8 +82,10 @@ struct EventActionBar: View {
     
     var like_swipe_button: some View {
         SwipeAction(image: "shaka", backgroundColor: DamusColors.adaptableGrey) {
-            send_like(emoji: damus_state.settings.default_emoji_reaction)
-            self.swipe_context?.state.wrappedValue = .closed
+            Task {
+                await send_like(emoji: damus_state.settings.default_emoji_reaction)
+                self.swipe_context?.state.wrappedValue = .closed
+            }
         }
         .swipeButtonStyle()
         .accessibilityLabel(NSLocalizedString("React with default reaction emoji", comment: "Accessibility label for react button"))
@@ -131,7 +133,7 @@ struct EventActionBar: View {
                 if bar.liked {
                     //notify(.delete, bar.our_like)
                 } else {
-                    send_like(emoji: emoji)
+                    Task { await send_like(emoji: emoji) }
                 }
             }
             
@@ -260,7 +262,7 @@ struct EventActionBar: View {
         }
     }
 
-    func send_like(emoji: String) {
+    func send_like(emoji: String) async {
         guard let keypair = damus_state.keypair.to_full(),
               let like_ev = make_like_event(keypair: keypair, liked: event, content: emoji) else {
             return
@@ -270,7 +272,7 @@ struct EventActionBar: View {
 
         generator.impactOccurred()
         
-        damus_state.postbox.send(like_ev)
+        await damus_state.postbox.send(like_ev)
     }
     
     // MARK: Helper structures

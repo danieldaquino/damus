@@ -10,7 +10,7 @@ import Network
 
 struct RelayHandler {
     let sub_id: String
-    let callback: (RelayURL, NostrConnectionEvent) -> ()
+    let callback: (RelayURL, NostrConnectionEvent) async -> ()
 }
 
 struct QueuedRequest {
@@ -24,7 +24,7 @@ struct SeenEvent: Hashable {
     let evid: NoteId
 }
 
-class RelayPool {
+actor RelayPool {
     var relays: [Relay] = []
     var handlers: [RelayHandler] = []
     var request_queue: [QueuedRequest] = []
@@ -39,8 +39,8 @@ class RelayPool {
     private let network_monitor_queue = DispatchQueue(label: "io.damus.network_monitor")
     private var last_network_status: NWPath.Status = .unsatisfied
 
-    func close() {
-        disconnect()
+    func close() async {
+        await disconnect()
         relays = []
         handlers = []
         request_queue = []
@@ -54,21 +54,30 @@ class RelayPool {
         self.keypair = keypair
 
         network_monitor.pathUpdateHandler = { [weak self] path in
-            if (path.status == .satisfied || path.status == .requiresConnection) && self?.last_network_status != path.status {
-                DispatchQueue.main.async {
-                    self?.connect_to_disconnected()
-                }
+            guard let self else { return }
+            Task {
+                await self.path_update_handler(path: path)
             }
-            
-            if let self, path.status != self.last_network_status {
-                for relay in self.relays {
-                    relay.connection.log?.add("Network state: \(path.status)")
-                }
-            }
-            
-            self?.last_network_status = path.status
         }
         network_monitor.start(queue: network_monitor_queue)
+    }
+    
+    private func path_update_handler(path: NWPath) {
+        if (path.status == .satisfied || path.status == .requiresConnection) && self.last_network_status != path.status {
+            Task {
+                self.connect_to_disconnected()
+            }
+        }
+        
+        if path.status != self.last_network_status {
+            for relay in self.relays {
+                Task {
+                    await relay.connection.add_log("Network state: \(path.status)")
+                }
+            }
+        }
+        
+        self.last_network_status = path.status
     }
     
     var our_descriptors: [RelayDescriptor] {
@@ -79,8 +88,15 @@ class RelayPool {
         relays.map { r in r.descriptor }
     }
     
-    var num_connected: Int {
-        return relays.reduce(0) { n, r in n + (r.connection.isConnected ? 1 : 0) }
+    func num_connected() async -> Int {
+        var total_connected = 0
+        for relay in relays {
+            let is_connected = await relay.connection.isConnected
+            if is_connected {
+                total_connected += 1
+            }
+        }
+        return total_connected
     }
 
     func remove_handler(sub_id: String) {
@@ -91,11 +107,13 @@ class RelayPool {
     func ping() {
         Log.info("Pinging %d relays", for: .networking, relays.count)
         for relay in relays {
-            relay.connection.ping()
+            Task {  // Fire and forget, we don't need to know any results
+                await relay.connection.ping()
+            }
         }
     }
 
-    func register_handler(sub_id: String, handler: @escaping (RelayURL, NostrConnectionEvent) -> ()) {
+    func register_handler(sub_id: String, handler: @escaping (RelayURL, NostrConnectionEvent) async -> ()) {
         for handler in handlers {
             // don't add duplicate handlers
             if handler.sub_id == sub_id {
@@ -106,20 +124,25 @@ class RelayPool {
         print("registering \(sub_id) handler, current: \(self.handlers.count)")
     }
 
-    func remove_relay(_ relay_id: RelayURL) {
+    func remove_relay(_ relay_id: RelayURL) async {
         var i: Int = 0
 
-        self.disconnect(to: [relay_id])
+        await self.disconnect(to: [relay_id])
         
         for relay in relays {
             if relay.id == relay_id {
-                relay.connection.disablePermanently()
+                await relay.connection.disablePermanently()
                 relays.remove(at: i)
                 break
             }
             
             i += 1
         }
+    }
+    
+    /// A convenience function that adds a relay from a synchronous context, and swallows errors
+    nonisolated func add_relay_and_forget(_ desc: RelayDescriptor) {
+        Task { try? await self.add_relay(desc) }
     }
 
     func add_relay(_ desc: RelayDescriptor) throws {
@@ -128,7 +151,7 @@ class RelayPool {
             throw RelayError.RelayAlreadyExists
         }
         let conn = RelayConnection(url: desc.url, handleEvent: { event in
-            self.handle_event(relay_id: relay_id, event: event)
+            Task { await self.handle_event(relay_id: relay_id, event: event) }
         }, processEvent: { wsev in
             guard case .message(let msg) = wsev,
                   case .string(let str) = msg
@@ -141,29 +164,23 @@ class RelayPool {
         self.relays.append(relay)
     }
 
-    func setLog(_ log: RelayLog, for relay_id: RelayURL) {
+    func setLog(_ log: RelayLog, for relay_id: RelayURL) async {
         // add the current network state to the log
         log.add("Network state: \(network_monitor.currentPath.status)")
 
-        get_relay(relay_id)?.connection.log = log
+        await get_relay(relay_id)?.connection.set_log(log)
     }
     
     /// This is used to retry dead connections
     func connect_to_disconnected() {
         for relay in relays {
-            let c = relay.connection
-            
-            let is_connecting = c.isConnecting
-
-            if is_connecting && (Date.now.timeIntervalSince1970 - c.last_connection_attempt) > 5 {
-                print("stale connection detected (\(relay.descriptor.url.absoluteString)). retrying...")
-                relay.connection.reconnect()
-            } else if relay.is_broken || is_connecting || c.isConnected {
+            if relay.is_broken {
                 continue
-            } else {
-                relay.connection.reconnect()
             }
             
+            Task {  // Reconnections can be done in parallel
+                await relay.connection.connect_to_disconnected()
+            }
         }
     }
 
@@ -171,39 +188,39 @@ class RelayPool {
         let relays = to.map{ get_relays($0) } ?? self.relays
         for relay in relays {
             // don't try to reconnect to broken relays
-            relay.connection.reconnect()
+            Task { await relay.connection.reconnect() } // Reconnect to them in parallel
         }
     }
 
     func connect(to: [RelayURL]? = nil) {
         let relays = to.map{ get_relays($0) } ?? self.relays
         for relay in relays {
-            relay.connection.connect()
+            Task { await relay.connection.connect() } // Connect in parallel
         }
     }
 
-    func disconnect(to: [RelayURL]? = nil) {
+    func disconnect(to: [RelayURL]? = nil) async {
         let relays = to.map{ get_relays($0) } ?? self.relays
         for relay in relays {
-            relay.connection.disconnect()
+            Task { await relay.connection.disconnect() }
         }
     }
 
-    func unsubscribe(sub_id: String, to: [RelayURL]? = nil) {
+    func unsubscribe(sub_id: String, to: [RelayURL]? = nil) async {
         if to == nil {
             self.remove_handler(sub_id: sub_id)
         }
-        self.send(.unsubscribe(sub_id), to: to)
+        await self.send(.unsubscribe(sub_id), to: to)
     }
 
-    func subscribe(sub_id: String, filters: [NostrFilter], handler: @escaping (RelayURL, NostrConnectionEvent) -> (), to: [RelayURL]? = nil) {
+    func subscribe(sub_id: String, filters: [NostrFilter], handler: @escaping (RelayURL, NostrConnectionEvent) async -> (), to: [RelayURL]? = nil) async {
         register_handler(sub_id: sub_id, handler: handler)
-        send(.subscribe(.init(filters: filters, sub_id: sub_id)), to: to)
+        await send(.subscribe(.init(filters: filters, sub_id: sub_id)), to: to)
     }
 
-    func subscribe_to(sub_id: String, filters: [NostrFilter], to: [RelayURL]?, handler: @escaping (RelayURL, NostrConnectionEvent) -> ()) {
+    func subscribe_to(sub_id: String, filters: [NostrFilter], to: [RelayURL]?, handler: @escaping (RelayURL, NostrConnectionEvent) async -> ()) async {
         register_handler(sub_id: sub_id, handler: handler)
-        send(.subscribe(.init(filters: filters, sub_id: sub_id)), to: to)
+        await send(.subscribe(.init(filters: filters, sub_id: sub_id)), to: to)
     }
 
     func count_queued(relay: RelayURL) -> Int {
@@ -240,7 +257,7 @@ class RelayPool {
         }
     }
 
-    func send_raw(_ req: NostrRequestType, to: [RelayURL]? = nil, skip_ephemeral: Bool = true) {
+    func send_raw(_ req: NostrRequestType, to: [RelayURL]? = nil, skip_ephemeral: Bool = true) async {
         let relays = to.map{ get_relays($0) } ?? self.relays
 
         self.send_raw_to_local_ndb(req)
@@ -258,19 +275,19 @@ class RelayPool {
                 continue
             }
             
-            guard relay.connection.isConnected else {
+            guard await relay.connection.isConnected else {
                 queue_req(r: req, relay: relay.id, skip_ephemeral: skip_ephemeral)
                 continue
             }
             
-            relay.connection.send(req, callback: { str in
+            await relay.connection.send(req, callback: { str in
                 self.message_sent_function?((str, relay))
             })
         }
     }
 
-    func send(_ req: NostrRequest, to: [RelayURL]? = nil, skip_ephemeral: Bool = true) {
-        send_raw(.typical(req), to: to, skip_ephemeral: skip_ephemeral)
+    func send(_ req: NostrRequest, to: [RelayURL]? = nil, skip_ephemeral: Bool = true) async {
+        await send_raw(.typical(req), to: to, skip_ephemeral: skip_ephemeral)
     }
 
     func get_relays(_ ids: [RelayURL]) -> [Relay] {
@@ -290,7 +307,7 @@ class RelayPool {
             }
             
             print("running queueing request: \(req.req) for \(relay_id)")
-            self.send_raw(req.req, to: [relay_id], skip_ephemeral: false)
+            Task { await self.send_raw(req.req, to: [relay_id], skip_ephemeral: false) }
         }
     }
 
@@ -310,7 +327,7 @@ class RelayPool {
         }
     }
 
-    func handle_event(relay_id: RelayURL, event: NostrConnectionEvent) {
+    func handle_event(relay_id: RelayURL, event: NostrConnectionEvent) async {
         record_seen(relay_id: relay_id, event: event)
 
         // run req queue when we reconnect
@@ -329,7 +346,7 @@ class RelayPool {
                 if let keypair {
                     if let fullKeypair = keypair.to_full() {
                         if let authRequest = make_auth_request(keypair: fullKeypair, challenge_string: challenge_string, relay: relay) {
-                            send(.auth(authRequest), to: [relay_id], skip_ephemeral: false)
+                            await send(.auth(authRequest), to: [relay_id], skip_ephemeral: false)
                             relay.authentication_state = .verified
                         } else {
                             print("failed to make auth request")
@@ -348,13 +365,13 @@ class RelayPool {
         }
 
         for handler in handlers {
-            handler.callback(relay_id, event)
+            Task { await handler.callback(relay_id, event) }    // Do not block on the handlers
         }
     }
 }
 
-func add_rw_relay(_ pool: RelayPool, _ url: RelayURL) {
-    try? pool.add_relay(RelayDescriptor(url: url, info: .rw))
+func add_rw_relay(_ pool: RelayPool, _ url: RelayURL) async {
+    try? await pool.add_relay(RelayDescriptor(url: url, info: .rw))
 }
 
 

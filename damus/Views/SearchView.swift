@@ -35,10 +35,10 @@ struct SearchView: View {
             dismiss()
         }
         .onAppear() {
-            search.subscribe()
+            Task { await search.subscribe() }
         }
         .onDisappear() {
-            search.unsubscribe()
+            Task { await search.unsubscribe() }
         }
         .onReceive(handle_notify(.new_mutes)) { notif in
             search.filter_muted()
@@ -69,13 +69,13 @@ struct SearchView: View {
                                 }
 
                                 appstate.mutelist_manager.set_mutelist(mutelist)
-                                appstate.postbox.send(mutelist)
+                                Task { await appstate.postbox.send(mutelist) }
                             } label: {
                                 Text("Unmute Hashtag", comment: "Label represnting a button that the user can tap to unmute a given hashtag so they start seeing it in their feed again.")
                             }
                         } else {
                             MuteDurationMenu { duration in
-                                mute_hashtag(hashtag_string: hashtag, expiration_time: duration?.date_from_now)
+                                Task { await mute_hashtag(hashtag_string: hashtag, expiration_time: duration?.date_from_now) }
                             } label: {
                                 Text("Mute Hashtag", comment: "Label represnting a button that the user can tap to mute a given hashtag so they don't see it in their feed anymore.")
                             }
@@ -93,7 +93,7 @@ struct SearchView: View {
         }
     }
 
-    func mute_hashtag(hashtag_string: String, expiration_time: Date?) {
+    func mute_hashtag(hashtag_string: String, expiration_time: Date?) async {
         let existing_mutelist = appstate.mutelist_manager.event
 
         guard
@@ -104,7 +104,7 @@ struct SearchView: View {
         }
 
         appstate.mutelist_manager.set_mutelist(mutelist)
-        appstate.postbox.send(mutelist)
+        await appstate.postbox.send(mutelist)
     }
 
     var described_search: DescribedSearch {

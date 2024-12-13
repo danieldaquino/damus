@@ -96,8 +96,10 @@ struct SearchHomeView: View {
         )
         .refreshable {
             // Fetch new information by unsubscribing and resubscribing to the relay
-            model.unsubscribe()
-            model.subscribe()
+            Task {
+                await model.unsubscribe()
+                await model.subscribe()
+            }
         }
     }
     
@@ -105,8 +107,10 @@ struct SearchHomeView: View {
         SearchResultsView(damus_state: damus_state, search: $search)
             .refreshable {
                 // Fetch new information by unsubscribing and resubscribing to the relay
-                model.unsubscribe()
-                model.subscribe()
+                Task {
+                    await model.unsubscribe()
+                    await model.subscribe()
+                }
             }
     }
     
@@ -141,11 +145,11 @@ struct SearchHomeView: View {
         }
         .onAppear {
             if model.events.events.isEmpty {
-                model.subscribe()
+                Task { await model.subscribe() }
             }
         }
         .onDisappear {
-            model.unsubscribe()
+            Task { await model.unsubscribe() }
         }
     }
 }

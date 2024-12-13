@@ -57,7 +57,7 @@ struct EditMetadataView: View {
         return profile
     }
     
-    func save() {
+    func save() async {
         let profile = to_profile()
         guard let keypair = damus_state.keypair.to_full(),
               let metadata_ev = make_metadata_event(keypair: keypair, metadata: profile)
@@ -65,7 +65,7 @@ struct EditMetadataView: View {
             return
         }
 
-        damus_state.postbox.send(metadata_ev)
+        await damus_state.postbox.send(metadata_ev)
     }
 
     func is_ln_valid(ln: String) -> Bool {
@@ -197,11 +197,13 @@ struct EditMetadataView: View {
             }
             
             Button(action: {
-                if !ln.isEmpty && !is_ln_valid(ln: ln) {
-                    confirm_ln_address = true
-                } else {
-                    save()
-                    dismiss()
+                Task {
+                    if !ln.isEmpty && !is_ln_valid(ln: ln) {
+                        confirm_ln_address = true
+                    } else {
+                        await save()
+                        dismiss()
+                    }
                 }
             }, label: {
                 Text(NSLocalizedString("Save", comment: "Button for saving profile."))

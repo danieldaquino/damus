@@ -131,13 +131,15 @@ struct ConfigView: View {
                 confirm_delete_account = false
             }
             Button(NSLocalizedString("Delete", comment: "Button for deleting the users account."), role: .destructive) {
-                guard let keypair = state.keypair.to_full(),
-                      delete_text == DELETE_KEYWORD,
-                      let ev = created_deleted_account_profile(keypair: keypair) else {
-                    return
+                Task {
+                    guard let keypair = state.keypair.to_full(),
+                          delete_text == DELETE_KEYWORD,
+                          let ev = created_deleted_account_profile(keypair: keypair) else {
+                        return
+                    }
+                    await state.postbox.send(ev)
+                    logout(state)
                 }
-                state.postbox.send(ev)
-                logout(state)
             }
         }
         .alert(NSLocalizedString("Logout", comment: "Alert for logging out the user."), isPresented: $confirm_logout) {

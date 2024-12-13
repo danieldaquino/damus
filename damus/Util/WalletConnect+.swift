@@ -32,25 +32,25 @@ func make_wallet_connect_request<T>(req: WalletRequest<T>, to_pk: Pubkey, keypai
     return create_encrypted_event(content, to_pk: to_pk, tags: tags, keypair: keypair, created_at: created_at, kind: 23194)
 }
 
-func subscribe_to_nwc(url: WalletConnectURL, pool: RelayPool) {
+func subscribe_to_nwc(url: WalletConnectURL, pool: RelayPool) async {
     var filter = NostrFilter(kinds: [.nwc_response])
     filter.authors = [url.pubkey]
     filter.limit = 0
     let sub = NostrSubscribe(filters: [filter], sub_id: "nwc")
 
-    pool.send(.subscribe(sub), to: [url.relay], skip_ephemeral: false)
+    await pool.send(.subscribe(sub), to: [url.relay], skip_ephemeral: false)
 }
 
 @discardableResult
-func nwc_pay(url: WalletConnectURL, pool: RelayPool, post: PostBox, invoice: String, delay: TimeInterval? = 5.0, on_flush: OnFlush? = nil) -> NostrEvent? {
+func nwc_pay(url: WalletConnectURL, pool: RelayPool, post: PostBox, invoice: String, delay: TimeInterval? = 5.0, on_flush: OnFlush? = nil) async -> NostrEvent? {
     let req = make_wallet_pay_invoice_request(invoice: invoice)
     guard let ev = make_wallet_connect_request(req: req, to_pk: url.pubkey, keypair: url.keypair) else {
         return nil
     }
 
-    try? pool.add_relay(.nwc(url: url.relay))
-    subscribe_to_nwc(url: url, pool: pool)
-    post.send(ev, to: [url.relay], skip_ephemeral: false, delay: delay, on_flush: on_flush)
+    try? await pool.add_relay(.nwc(url: url.relay))
+    await subscribe_to_nwc(url: url, pool: pool)
+    await post.send(ev, to: [url.relay], skip_ephemeral: false, delay: delay, on_flush: on_flush)
     return ev
 }
 
@@ -92,7 +92,7 @@ func send_donation_zap(pool: RelayPool, postbox: PostBox, nwc: WalletConnectURL,
     }
     
     print("damus-donation donating...")
-    nwc_pay(url: nwc, pool: pool, post: postbox, invoice: invoice, delay: nil)
+    await nwc_pay(url: nwc, pool: pool, post: postbox, invoice: invoice, delay: nil)
 }
 
 func nwc_error(zapcache: Zaps, evcache: EventCache, resp: FullWalletResponse) {

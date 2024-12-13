@@ -13,7 +13,7 @@ enum NostrConnectionEvent {
     case nostr_event(NostrResponse)
 }
 
-final class RelayConnection: ObservableObject {
+final actor RelayConnection: ObservableObject {
     @Published private(set) var isConnected = false
     @Published private(set) var isConnecting = false
     private var isDisabled = false
@@ -27,7 +27,7 @@ final class RelayConnection: ObservableObject {
     private var handleEvent: (NostrConnectionEvent) -> ()
     private var processEvent: (WebSocketEvent) -> ()
     private let relay_url: RelayURL
-    var log: RelayLog?
+    private var log: RelayLog?
 
     init(url: RelayURL,
          handleEvent: @escaping (NostrConnectionEvent) -> (),
@@ -44,18 +44,32 @@ final class RelayConnection: ObservableObject {
                 return
             }
             
-            if err == nil {
-                self.last_pong = .now
-                Log.info("Got pong from '%s'", for: .networking, self.relay_url.absoluteString)
-                self.log?.add("Successful ping")
-            } else {
-                Log.info("Ping failed, reconnecting to '%s'", for: .networking, self.relay_url.absoluteString)
-                self.isConnected = false
-                self.isConnecting = false
-                self.reconnect_with_backoff()
-                self.log?.add("Ping failed")
+            Task {
+                await self.handle_pong(err: err)
             }
         }
+    }
+    
+    private func handle_pong(err: Error?) {
+        if err == nil {
+            self.last_pong = .now
+            Log.info("Got pong from '%s'", for: .networking, self.relay_url.absoluteString)
+            self.log?.add("Successful ping")
+        } else {
+            Log.info("Ping failed, reconnecting to '%s'", for: .networking, self.relay_url.absoluteString)
+            self.isConnected = false
+            self.isConnecting = false
+            self.reconnect_with_backoff()
+            self.log?.add("Ping failed")
+        }
+    }
+    
+    func add_log(_ content: String) {
+        self.log?.add(content)
+    }
+    
+    func set_log(_ new_log: RelayLog?) {
+        self.log = new_log
     }
     
     func connect(force: Bool = false) {
@@ -69,14 +83,20 @@ final class RelayConnection: ObservableObject {
         subscriptionToken = socket.subject
             .receive(on: DispatchQueue.global(qos: .default))
             .sink { [weak self] completion in
-                switch completion {
-                case .failure(let error):
-                    self?.receive(event: .error(error))
-                case .finished:
-                    self?.receive(event: .disconnected(.normalClosure, nil))
+                guard let self else { return }
+                Task {
+                    switch completion {
+                    case .failure(let error):
+                        await self.receive(event: .error(error))
+                    case .finished:
+                        await self.receive(event: .disconnected(.normalClosure, nil))
+                    }
                 }
             } receiveValue: { [weak self] event in
-                self?.receive(event: event)
+                guard let self else { return }
+                Task {
+                    await self.receive(event: event)
+                }
             }
             
         socket.connect()
@@ -118,22 +138,18 @@ final class RelayConnection: ObservableObject {
         processEvent(event)
         switch event {
         case .connected:
-            DispatchQueue.main.async {
-                self.backoff = 1.0
-                self.isConnected = true
-                self.isConnecting = false
-            }
+            self.backoff = 1.0
+            self.isConnected = true
+            self.isConnecting = false
         case .message(let message):
             self.receive(message: message)
         case .disconnected(let closeCode, let reason):
             if closeCode != .normalClosure {
                 Log.error("⚠️ Warning: RelayConnection (%d) closed with code: %s", for: .networking, String(describing: closeCode), String(describing: reason))
             }
-            DispatchQueue.main.async {
-                self.isConnected = false
-                self.isConnecting = false
-                self.reconnect()
-            }
+            self.isConnected = false
+            self.isConnecting = false
+            self.reconnect()
         case .error(let error):
             Log.error("⚠️ Warning: RelayConnection (%s) error: %s", for: .networking, self.relay_url.absoluteString, error.localizedDescription)
             let nserr = error as NSError
@@ -145,15 +161,11 @@ final class RelayConnection: ObservableObject {
                 // these aren't real error, it just means task was cancelled
                 return
             }
-            DispatchQueue.main.async {
-                self.isConnected = false
-                self.isConnecting = false
-                self.reconnect_with_backoff()
-            }
+            self.isConnected = false
+            self.isConnecting = false
+            self.reconnect_with_backoff()
         }
-        DispatchQueue.main.async {
-            self.handleEvent(.ws_event(event))
-        }
+        self.handleEvent(.ws_event(event))
         
         if let description = event.description {
             log?.add(description)
@@ -163,6 +175,18 @@ final class RelayConnection: ObservableObject {
     func reconnect_with_backoff() {
         self.backoff *= 2.0
         self.reconnect_in(after: self.backoff)
+    }
+    
+    /// This is used to retry a dead connection
+    func connect_to_disconnected() {
+        if self.isConnecting && (Date.now.timeIntervalSince1970 - self.last_connection_attempt) > 5 {
+            self.add_log("stale connection detected. retrying...")
+            self.reconnect()
+        } else if self.isConnecting || self.isConnected {
+            return
+        } else {
+            self.reconnect()
+        }
     }
     
     func reconnect() {
@@ -182,8 +206,8 @@ final class RelayConnection: ObservableObject {
     }
     
     func reconnect_in(after: TimeInterval) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + after) {
-            self.reconnect()
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + after) {
+            Task { await self.reconnect() }
         }
     }
     
@@ -191,7 +215,7 @@ final class RelayConnection: ObservableObject {
         switch message {
         case .string(let messageString):
             if let ev = decode_nostr_event(txt: messageString) {
-                DispatchQueue.main.async {
+                Task {
                     self.handleEvent(.nostr_event(ev))
                 }
                 return

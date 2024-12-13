@@ -70,9 +70,9 @@ struct NoteZapButton: View {
         return Color.orange
     }
     
-    func tap() {
+    func tap() async {
         guard let our_zap else {
-            send_zap(damus_state: damus_state, target: target, lnurl: lnurl, is_custom: false, comment: nil, amount_sats: nil, zap_type: damus_state.settings.default_zap_type)
+            await send_zap(damus_state: damus_state, target: target, lnurl: lnurl, is_custom: false, comment: nil, amount_sats: nil, zap_type: damus_state.settings.default_zap_type)
             return
         }
         
@@ -146,7 +146,7 @@ struct NoteZapButton: View {
         .highPriorityGesture(TapGesture().onEnded {
             guard !damus_state.settings.nozaps else { return }
             
-            tap()
+            Task { await tap() }
         })
     }
 }
@@ -173,13 +173,13 @@ func initial_pending_zap_state(settings: UserSettingsStore) -> PendingZapState {
     return .external(ExtPendingZapState(state: .fetching_invoice))
 }
 
-func send_zap(damus_state: DamusState, target: ZapTarget, lnurl: String, is_custom: Bool, comment: String?, amount_sats: Int?, zap_type: ZapType) {
+func send_zap(damus_state: DamusState, target: ZapTarget, lnurl: String, is_custom: Bool, comment: String?, amount_sats: Int?, zap_type: ZapType) async {
     guard let keypair = damus_state.keypair.to_full() else {
         return
     }
     
     // Only take the first 10 because reasons
-    let relays = Array(damus_state.pool.our_descriptors.prefix(10))
+    let relays = await Array(damus_state.pool.our_descriptors.prefix(10))
     let content = comment ?? ""
     
     guard let mzapreq = make_zap_request_event(keypair: keypair, content: content, relays: relays, target: target, zap_type: zap_type) else {
@@ -240,7 +240,7 @@ func send_zap(damus_state: DamusState, target: ZapTarget, lnurl: String, is_cust
             // we don't have a delay on one-tap nozaps (since this will be from customize zap view)
             let delay = damus_state.settings.nozaps ? nil : 5.0
 
-            let nwc_req = nwc_pay(url: nwc_state.url, pool: damus_state.pool, post: damus_state.postbox, invoice: inv, delay: delay, on_flush: flusher)
+            let nwc_req = await nwc_pay(url: nwc_state.url, pool: damus_state.pool, post: damus_state.postbox, invoice: inv, delay: delay, on_flush: flusher)
 
             guard let nwc_req, case .nwc(let pzap_state) = pending_zap_state else {
                 print("nwc: failed to send nwc request for zapreq \(reqid.reqid)")

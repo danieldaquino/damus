@@ -31,7 +31,7 @@ class SuggestedUsersViewModel: ObservableObject {
         self.damus_state = damus_state
         loadSuggestedUserGroups()
         let pubkeys = getPubkeys(groups: groups)
-        subscribeToSuggestedProfiles(pubkeys: pubkeys)
+        Task { await subscribeToSuggestedProfiles(pubkeys: pubkeys) }
     }
 
     func suggestedUser(pubkey: Pubkey) -> SuggestedUser? {
@@ -75,9 +75,9 @@ class SuggestedUsersViewModel: ObservableObject {
         return pubkeys
     }
 
-    private func subscribeToSuggestedProfiles(pubkeys: [Pubkey]) {
+    private func subscribeToSuggestedProfiles(pubkeys: [Pubkey]) async {
         let filter = NostrFilter(kinds: [.metadata], authors: pubkeys)
-        damus_state.pool.subscribe(sub_id: sub_id, filters: [filter], handler: handle_event)
+        await damus_state.pool.subscribe(sub_id: sub_id, filters: [filter], handler: handle_event)
     }
 
     func handle_event(relay_id: RelayURL, ev: NostrConnectionEvent) {

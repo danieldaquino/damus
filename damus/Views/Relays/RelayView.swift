@@ -80,7 +80,7 @@ struct RelayView: View {
                                 AddButton(keypair: keypair)
                             } else {
                                 Button(action: {
-                                    remove_action(privkey: keypair.privkey)
+                                    Task { await remove_action(privkey: keypair.privkey) }
                                 }) {
                                     Text("Added", comment: "Button to show relay server is already added to list.")
                                         .font(.caption)
@@ -116,22 +116,22 @@ struct RelayView: View {
         state.pool.get_relay(relay)?.connection
     }
     
-    func add_action(keypair: FullKeypair) {
+    func add_action(keypair: FullKeypair) async {
         guard let ev_before_add = state.contacts.event else {
             return
         }
         guard let ev_after_add = add_relay(ev: ev_before_add, keypair: keypair, current_relays: state.pool.our_descriptors, relay: relay, info: .rw) else {
             return
         }
-        process_contact_event(state: state, ev: ev_after_add)
-        state.postbox.send(ev_after_add)
+        await process_contact_event(state: state, ev: ev_after_add)
+        await state.postbox.send(ev_after_add)
         
         if let relay_metadata = make_relay_metadata(relays: state.pool.our_descriptors, keypair: keypair) {
-            state.postbox.send(relay_metadata)
+            await state.postbox.send(relay_metadata)
         }
     }
     
-    func remove_action(privkey: Privkey) {
+    func remove_action(privkey: Privkey) async {
         guard let ev = state.contacts.event else {
             return
         }
@@ -142,17 +142,17 @@ struct RelayView: View {
             return
         }
 
-        process_contact_event(state: state, ev: new_ev)
-        state.postbox.send(new_ev)
+        await process_contact_event(state: state, ev: new_ev)
+        await state.postbox.send(new_ev)
         
         if let relay_metadata = make_relay_metadata(relays: state.pool.our_descriptors, keypair: keypair) {
-            state.postbox.send(relay_metadata)
+            await state.postbox.send(relay_metadata)
         }
     }
     
     func AddButton(keypair: FullKeypair) -> some View {
         Button(action: {
-            add_action(keypair: keypair)
+            Task { await add_action(keypair: keypair) }
         }) {
             Text("Add", comment: "Button to add relay server to list.")
                 .font(.caption)
@@ -170,7 +170,7 @@ struct RelayView: View {
         
     func RemoveButton(privkey: Privkey, showText: Bool) -> some View {
         Button(action: {
-            remove_action(privkey: privkey)
+            Task { await remove_action(privkey: privkey) }
         }) {
             if showText {
                 Text("Disconnect", comment: "Button to disconnect from a relay server.")

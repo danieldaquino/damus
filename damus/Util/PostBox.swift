@@ -60,7 +60,7 @@ class PostBox {
     init(pool: RelayPool) {
         self.pool = pool
         self.events = [:]
-        pool.register_handler(sub_id: "postbox", handler: handle_event)
+        Task { await pool.register_handler(sub_id: "postbox", handler: handle_event) }
     }
     
     // only works reliably on delay-sent events
@@ -81,7 +81,7 @@ class PostBox {
         return nil
     }
     
-    func try_flushing_events() {
+    func try_flushing_events() async {
         let now = Int64(Date().timeIntervalSince1970)
         for kv in events {
             let event = kv.value
@@ -95,7 +95,7 @@ class PostBox {
                 if relayer.last_attempt == nil ||
                    (now >= (relayer.last_attempt! + Int64(relayer.retry_after))) {
                     print("attempt #\(relayer.attempts) to flush event '\(event.event.content)' to \(relayer.relay) after \(relayer.retry_after) seconds")
-                    flush_event(event, to_relay: relayer)
+                    await flush_event(event, to_relay: relayer)
                 }
             }
         }
@@ -140,7 +140,7 @@ class PostBox {
         return prev_count != after_count
     }
     
-    private func flush_event(_ event: PostedEvent, to_relay: Relayer? = nil) {
+    private func flush_event(_ event: PostedEvent, to_relay: Relayer? = nil) async {
         var relayers = event.remaining
         if let to_relay {
             relayers = [to_relay]
@@ -150,29 +150,30 @@ class PostBox {
             relayer.attempts += 1
             relayer.last_attempt = Int64(Date().timeIntervalSince1970)
             relayer.retry_after *= 1.5
-            if pool.get_relay(relayer.relay) != nil {
+            if await pool.get_relay(relayer.relay) != nil {
                 print("flushing event \(event.event.id) to \(relayer.relay)")
             } else {
                 print("could not find relay when flushing: \(relayer.relay)")
             }
-            pool.send(.event(event.event), to: [relayer.relay], skip_ephemeral: event.skip_ephemeral)
+            await pool.send(.event(event.event), to: [relayer.relay], skip_ephemeral: event.skip_ephemeral)
         }
     }
 
-    func send(_ event: NostrEvent, to: [RelayURL]? = nil, skip_ephemeral: Bool = true, delay: TimeInterval? = nil, on_flush: OnFlush? = nil) {
+    func send(_ event: NostrEvent, to: [RelayURL]? = nil, skip_ephemeral: Bool = true, delay: TimeInterval? = nil, on_flush: OnFlush? = nil) async {
         // Don't add event if we already have it
         if events[event.id] != nil {
             return
         }
 
-        let remaining = to ?? pool.our_descriptors.map { $0.url }
+        let pool_descriptors = await pool.our_descriptors
+        let remaining = to ?? pool_descriptors.map { $0.url }
         let after = delay.map { d in Date.now.addingTimeInterval(d) }
         let posted_ev = PostedEvent(event: event, remaining: remaining, skip_ephemeral: skip_ephemeral, flush_after: after, on_flush: on_flush)
 
         events[event.id] = posted_ev
         
         if after == nil {
-            flush_event(posted_ev)
+            await flush_event(posted_ev)
         }
     }
 }

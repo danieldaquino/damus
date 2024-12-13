@@ -196,9 +196,11 @@ struct ChatEventView: View {
                         .presentationDetents([.medium, .large])
                 }
                 .onChange(of: selected_emoji) { newSelectedEmoji in
-                    if let newSelectedEmoji {
-                        send_like(emoji: newSelectedEmoji.value)
-                        popover_state = .closed
+                    Task {
+                        if let newSelectedEmoji {
+                            await send_like(emoji: newSelectedEmoji.value)
+                            popover_state = .closed
+                        }
                     }
                 }
         }
@@ -233,7 +235,7 @@ struct ChatEventView: View {
         )
     }
     
-    func send_like(emoji: String) {
+    func send_like(emoji: String) async {
         guard let keypair = damus_state.keypair.to_full(),
               let like_ev = make_like_event(keypair: keypair, liked: event, content: emoji) else {
             return
@@ -244,7 +246,7 @@ struct ChatEventView: View {
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
         
-        damus_state.postbox.send(like_ev)
+        await damus_state.postbox.send(like_ev)
     }
     
     var action_bar: some View {

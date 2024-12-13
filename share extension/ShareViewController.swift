@@ -161,8 +161,10 @@ struct ShareExtensionView: View {
                 }
         }
         .onAppear(perform: {
-            if setDamusState() {
-                self.loadSharedContent()
+            Task {
+                if await setDamusState() {
+                    self.loadSharedContent()
+                }
             }
         })
         .onDisappear {
@@ -173,7 +175,7 @@ struct ShareExtensionView: View {
         .onReceive(handle_notify(.post)) { post_notification in
             switch post_notification {
             case .post(let post):
-                self.post(post)
+                Task { await self.post(post) }
             case .cancel:
                 self.share_state = .cancelled
                 dismissParent?()
@@ -216,7 +218,7 @@ struct ShareExtensionView: View {
         }
     }
     
-    func post(_ post: NostrPost) {
+    func post(_ post: NostrPost) async {
         self.share_state = .posting
         guard let state else {
             self.share_state = .failed(error: "Damus state not initialized")
@@ -230,7 +232,7 @@ struct ShareExtensionView: View {
             self.share_state = .failed(error: "Cannot convert post data into a nostr event")
             return
         }
-        state.postbox.send(posted_event, on_flush: .once({ flushed_event in
+        await state.postbox.send(posted_event, on_flush: .once({ flushed_event in
             if flushed_event.event.id == posted_event.id {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: {  // Offset labor perception bias
                     self.share_state = .posted(event: flushed_event.event)
@@ -243,13 +245,13 @@ struct ShareExtensionView: View {
     }
     
     @discardableResult
-    private func setDamusState() -> Bool {
+    private func setDamusState() async -> Bool {
         guard let keypair = get_saved_keypair(),
               keypair.privkey != nil else {
             self.share_state = .not_logged_in
             return false
         }
-        state = DamusState(keypair: keypair)
+        state = await DamusState(keypair: keypair)
         return true
     }
     

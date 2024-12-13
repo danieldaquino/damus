@@ -76,7 +76,7 @@ class DamusState: HeadlessDamusState {
     }
     
     @MainActor
-    convenience init?(keypair: Keypair) {
+    convenience init?(keypair: Keypair) async {
         // nostrdb
         var mndb = Ndb()
         if mndb == nil {
@@ -108,14 +108,16 @@ class DamusState: HeadlessDamusState {
         let new_relay_filters = load_relay_filters(pubkey) == nil
         for relay in bootstrap_relays {
             let descriptor = RelayDescriptor(url: relay, info: .rw)
-            add_new_relay(model_cache: model_cache, relay_filters: relay_filters, pool: pool, descriptor: descriptor, new_relay_filters: new_relay_filters, logging_enabled: settings.developer_mode)
+            Task {
+                await add_new_relay(model_cache: model_cache, relay_filters: relay_filters, pool: pool, descriptor: descriptor, new_relay_filters: new_relay_filters, logging_enabled: settings.developer_mode)
+            }
         }
 
-        pool.register_handler(sub_id: sub_id, handler: home.handle_event)
+        Task { await pool.register_handler(sub_id: sub_id, handler: home.handle_event) }
         
         if let nwc_str = settings.nostr_wallet_connect,
            let nwc = WalletConnectURL(str: nwc_str) {
-            try? pool.add_relay(.nwc(url: nwc.relay))
+            Task { try? await pool.add_relay(.nwc(url: nwc.relay)) }
         }
         self.init(
             pool: pool,
@@ -125,7 +127,7 @@ class DamusState: HeadlessDamusState {
             contacts: Contacts(our_pubkey: pubkey),
             mutelist_manager: MutelistManager(user_keypair: keypair),
             profiles: Profiles(ndb: ndb),
-            dms: home.dms,
+            dms: await home.dms,
             previews: PreviewCache(),
             zaps: Zaps(our_pubkey: pubkey),
             lnurls: LNUrls(),
@@ -176,7 +178,7 @@ class DamusState: HeadlessDamusState {
     func close() {
         print("txn: damus close")
         wallet.disconnect()
-        pool.close()
+        Task { await pool.close() }
         ndb.close()
     }
 

@@ -25,7 +25,7 @@ struct RepostAction: View {
                     return
                 }
 
-                damus_state.postbox.send(boost)
+                Task { await damus_state.postbox.send(boost) }
             } label: {
                 Label(NSLocalizedString("Repost", comment: "Button to repost a note"), image: "repost")
                     .frame(maxWidth: .infinity, minHeight: 50, maxHeight: 50, alignment: .leading)

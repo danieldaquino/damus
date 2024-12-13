@@ -116,9 +116,10 @@ struct UserStatusSheet: View {
                             return
                         }
                         
-                        postbox.send(ev)
-                        
-                        dismiss()
+                        Task {
+                            await postbox.send(ev)
+                            dismiss()
+                        }
                     }, label: {
                         Text("Share", comment: "Save button text for saving profile status settings.")
                     })

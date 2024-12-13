@@ -23,16 +23,16 @@ struct EventLoaderView<Content: View>: View {
         _event = State(initialValue: event)
     }
     
-    func unsubscribe() {
-        damus_state.pool.unsubscribe(sub_id: subscription_uuid)
+    func unsubscribe() async {
+        await damus_state.pool.unsubscribe(sub_id: subscription_uuid)
     }
     
-    func subscribe(filters: [NostrFilter]) {
-        damus_state.pool.register_handler(sub_id: subscription_uuid, handler: handle_event)
-        damus_state.pool.send(.subscribe(.init(filters: filters, sub_id: subscription_uuid)))
+    func subscribe(filters: [NostrFilter]) async {
+        await damus_state.pool.register_handler(sub_id: subscription_uuid, handler: handle_event)
+        await damus_state.pool.send(.subscribe(.init(filters: filters, sub_id: subscription_uuid)))
     }
 
-    func handle_event(relay_id: RelayURL, ev: NostrConnectionEvent) {
+    func handle_event(relay_id: RelayURL, ev: NostrConnectionEvent) async {
         guard case .nostr_event(let nostr_response) = ev else {
             return
         }
@@ -51,11 +51,11 @@ struct EventLoaderView<Content: View>: View {
         
         event = nostr_event
         
-        unsubscribe()
+        await unsubscribe()
     }
     
-    func load() {
-        subscribe(filters: [
+    func load() async {
+        await subscribe(filters: [
             NostrFilter(ids: [self.event_id], limit: 1)
         ])
     }
@@ -72,7 +72,7 @@ struct EventLoaderView<Content: View>: View {
             guard event == nil else {
                 return
             }
-            self.load()
+            Task { await self.load() }
         }
     }
 }

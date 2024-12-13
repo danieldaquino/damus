@@ -25,10 +25,10 @@ struct ReactionsView: View {
         .padding(.bottom, tabHeight)
         .navigationBarTitle(NSLocalizedString("Reactions", comment: "Navigation bar title for Reactions view."))
         .onAppear {
-            model.subscribe()
+            Task { await model.subscribe() }
         }
         .onDisappear {
-            model.unsubscribe()
+            Task { await model.unsubscribe() }
         }
         .onReceive(handle_notify(.switched_timeline)) { _ in
             dismiss()

@@ -23,7 +23,7 @@ class ZapsModel: ObservableObject {
         return state.events.lookup_zaps(target: target)
     }
     
-    func subscribe() {
+    func subscribe() async {
         var filter = NostrFilter(kinds: [.zap])
         switch target {
         case .profile(let profile_id):
@@ -31,15 +31,15 @@ class ZapsModel: ObservableObject {
         case .note(let note_target):
             filter.referenced_ids = [note_target.note_id]
         }
-        state.pool.subscribe(sub_id: zaps_subid, filters: [filter], handler: handle_event)
+        await state.pool.subscribe(sub_id: zaps_subid, filters: [filter], handler: handle_event)
     }
     
-    func unsubscribe() {
-        state.pool.unsubscribe(sub_id: zaps_subid)
+    func unsubscribe() async {
+        await state.pool.unsubscribe(sub_id: zaps_subid)
     }
 
     @MainActor
-    func handle_event(relay_id: RelayURL, conn_ev: NostrConnectionEvent) {
+    func handle_event(relay_id: RelayURL, conn_ev: NostrConnectionEvent) async {
         guard case .nostr_event(let resp) = conn_ev else {
             return
         }
@@ -56,7 +56,7 @@ class ZapsModel: ObservableObject {
         case .eose:
             let events = state.events.lookup_zaps(target: target).map { $0.request.ev }
             guard let txn = NdbTxn(ndb: state.ndb) else { return }
-            load_profiles(context: "zaps_model", profiles_subid: profiles_subid, relay_id: relay_id, load: .from_events(events), damus_state: state, txn: txn)
+            await load_profiles(context: "zaps_model", profiles_subid: profiles_subid, relay_id: relay_id, load: .from_events(events), damus_state: state, txn: txn)
         case .event(_, let ev):
             guard ev.kind == 9735,
                   let zapper = state.profiles.lookup_zapper(pubkey: target.pubkey),

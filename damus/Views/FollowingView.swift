@@ -104,10 +104,10 @@ struct FollowersView: View {
         }
         .navigationBarTitle(NSLocalizedString("Followers", comment: "Navigation bar title for view that shows who is following a user."))
         .onAppear {
-            followers.subscribe()
+            Task { await followers.subscribe() }
         }
         .onDisappear {
-            followers.unsubscribe()
+            Task { await followers.unsubscribe() }
         }
     }
 }
@@ -152,10 +152,10 @@ struct FollowingView: View {
         .tabViewStyle(.page(indexDisplayMode: .never))
         .onAppear {
             guard let txn = NdbTxn(ndb: self.damus_state.ndb) else { return }
-            following.subscribe(txn: txn)
+            Task { await following.subscribe(txn: txn) }
         }
         .onDisappear {
-            following.unsubscribe()
+            Task { await following.unsubscribe() }
         }
         .navigationBarTitle(NSLocalizedString("Following", comment: "Navigation bar title for view that shows who a user is following."))
         .safeAreaInset(edge: .top, spacing: 0) {

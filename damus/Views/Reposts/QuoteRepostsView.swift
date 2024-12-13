@@ -16,10 +16,10 @@ struct QuoteRepostsView: View {
         .padding(.bottom, tabHeight)
         .navigationBarTitle(NSLocalizedString("Quotes", comment: "Navigation bar title for Quote Reposts view."))
         .onAppear {
-            model.subscribe()
+            Task { await model.subscribe() }
         }
         .onDisappear {
-            model.unsubscribe()
+            Task { await model.unsubscribe() }
         }
     }
 }

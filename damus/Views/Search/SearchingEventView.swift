@@ -41,7 +41,7 @@ struct SearchingEventView: View {
         }
     }
     
-    func handle_search(search: SearchType) {
+    func handle_search(search: SearchType) async {
         self.search_state = .searching
         
         switch search {
@@ -77,7 +77,7 @@ struct SearchingEventView: View {
             }
             
         case .event(let note_id):
-            find_event(state: state, query: .event(evid: note_id)) { res in
+            await find_event(state: state, query: .event(evid: note_id)) { res in
                 guard case .event(let ev) = res else {
                     self.search_state = .not_found
                     return
@@ -85,7 +85,7 @@ struct SearchingEventView: View {
                 self.search_state = .found(ev)
             }
         case .profile(let pubkey):
-            find_event(state: state, query: .profile(pubkey: pubkey)) { res in
+            await find_event(state: state, query: .profile(pubkey: pubkey)) { res in
                 guard case .profile(let pubkey) = res else {
                     self.search_state = .not_found
                     return
@@ -93,7 +93,7 @@ struct SearchingEventView: View {
                 self.search_state = .found_profile(pubkey)
             }
         case .naddr(let naddr):
-            naddrLookup(damus_state: state, naddr: naddr) { res in
+            await naddrLookup(damus_state: state, naddr: naddr) { res in
                 guard let res = res else {
                     self.search_state = .not_found
                     return
@@ -127,10 +127,10 @@ struct SearchingEventView: View {
             }
         }
         .onChange(of: search_type, debounceTime: 0.5) { stype in
-            handle_search(search: stype)
+            Task { await handle_search(search: stype) }
         }
         .onAppear {
-            handle_search(search: search_type)
+            Task { await handle_search(search: search_type) }
         }
     }
 }

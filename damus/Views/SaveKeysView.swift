@@ -133,7 +133,7 @@ struct SaveKeysView: View {
         
         let bootstrap_relays = load_bootstrap_relays(pubkey: account.pubkey)
         for relay in bootstrap_relays {
-            add_rw_relay(self.pool, relay)
+            Task { await add_rw_relay(self.pool, relay) }
         }
 
         self.pool.register_handler(sub_id: "signup", handler: handle_event)
@@ -152,7 +152,7 @@ struct SaveKeysView: View {
         settings.latest_contact_event_id_hex = first_contact_event.id.hex()
     }
 
-    func handle_event(relay: RelayURL, ev: NostrConnectionEvent) {
+    func handle_event(relay: RelayURL, ev: NostrConnectionEvent) async {
         switch ev {
         case .ws_event(let wsev):
             switch wsev {
@@ -161,11 +161,11 @@ struct SaveKeysView: View {
                 
                 if let keypair = account.keypair.to_full(),
                    let metadata_ev = make_metadata_event(keypair: keypair, metadata: metadata) {
-                    self.pool.send(.event(metadata_ev))
+                    await self.pool.send(.event(metadata_ev))
                 }
                 
                 if let first_contact_event {
-                    self.pool.send(.event(first_contact_event))
+                    await self.pool.send(.event(first_contact_event))
                 }
                 
                 do {

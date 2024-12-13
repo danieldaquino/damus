@@ -7,8 +7,8 @@
 
 import Foundation
 
-public struct RelayURL: Hashable, Equatable, Codable, CodingKeyRepresentable, Identifiable, Comparable, CustomStringConvertible {
-    private(set) var url: URL
+public struct RelayURL: Hashable, Equatable, Codable, CodingKeyRepresentable, Identifiable, Comparable, CustomStringConvertible, Sendable {
+    let url: URL
 
     public var id: URL {
         return url

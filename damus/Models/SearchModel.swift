@@ -33,7 +33,7 @@ class SearchModel: ObservableObject {
         self.objectWillChange.send()
     }
     
-    func subscribe() {
+    func subscribe() async {
         // since 1 month
         search.limit = self.limit
         search.kinds = [.text, .like, .longform, .highlight]
@@ -41,13 +41,13 @@ class SearchModel: ObservableObject {
         //likes_filter.ids = ref_events.referenced_ids!
 
         print("subscribing to search '\(search)' with sub_id \(sub_id)")
-        state.pool.register_handler(sub_id: sub_id, handler: handle_event)
+        await state.pool.register_handler(sub_id: sub_id, handler: handle_event)
         loading = true
-        state.pool.send(.subscribe(.init(filters: [search], sub_id: sub_id)))
+        await state.pool.send(.subscribe(.init(filters: [search], sub_id: sub_id)))
     }
     
-    func unsubscribe() {
-        state.pool.unsubscribe(sub_id: sub_id)
+    func unsubscribe() async {
+        await state.pool.unsubscribe(sub_id: sub_id)
         loading = false
         print("unsubscribing from search '\(search)' with sub_id \(sub_id)")
     }
@@ -66,8 +66,8 @@ class SearchModel: ObservableObject {
         }
     }
 
-    func handle_event(relay_id: RelayURL, ev: NostrConnectionEvent) {
-        let (sub_id, done) = handle_subid_event(pool: state.pool, relay_id: relay_id, ev: ev) { sub_id, ev in
+    func handle_event(relay_id: RelayURL, ev: NostrConnectionEvent) async {
+        let (sub_id, done) = await handle_subid_event(pool: state.pool, relay_id: relay_id, ev: ev) { sub_id, ev in
             if ev.is_textlike && ev.should_show_event {
                 self.add_event(ev)
             }
@@ -81,7 +81,7 @@ class SearchModel: ObservableObject {
         
         if sub_id == self.sub_id {
             guard let txn = NdbTxn(ndb: state.ndb) else { return }
-            load_profiles(context: "search", profiles_subid: self.profiles_subid, relay_id: relay_id, load: .from_events(self.events.all_events), damus_state: state, txn: txn)
+            await load_profiles(context: "search", profiles_subid: self.profiles_subid, relay_id: relay_id, load: .from_events(self.events.all_events), damus_state: state, txn: txn)
         }
     }
 }
@@ -107,7 +107,7 @@ func event_matches_filter(_ ev: NostrEvent, filter: NostrFilter) -> Bool {
     return true
 }
 
-func handle_subid_event(pool: RelayPool, relay_id: RelayURL, ev: NostrConnectionEvent, handle: (String, NostrEvent) -> ()) -> (String?, Bool) {
+func handle_subid_event(pool: RelayPool, relay_id: RelayURL, ev: NostrConnectionEvent, handle: (String, NostrEvent) -> ()) async -> (String?, Bool) {
     switch ev {
     case .ws_event:
         return (nil, false)
@@ -124,7 +124,7 @@ func handle_subid_event(pool: RelayPool, relay_id: RelayURL, ev: NostrConnection
         case .notice(let note):
             if note.contains("Too many subscription filters") {
                 // TODO: resend filters?
-                pool.reconnect(to: [relay_id])
+                await pool.reconnect(to: [relay_id])
             }
             return (nil, false)
             

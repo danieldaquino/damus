@@ -67,14 +67,14 @@ class EventsModel: ObservableObject {
         return filter
     }
     
-    func subscribe() {
-        state.pool.subscribe(sub_id: sub_id,
-                             filters: [get_filter()],
-                             handler: handle_nostr_event)
+    func subscribe() async {
+        await state.pool.subscribe(sub_id: sub_id,
+                                   filters: [get_filter()],
+                                   handler: handle_nostr_event)
     }
     
-    func unsubscribe() {
-        state.pool.unsubscribe(sub_id: sub_id)
+    func unsubscribe() async {
+        await state.pool.unsubscribe(sub_id: sub_id)
     }
 
     private func handle_event(relay_id: RelayURL, ev: NostrEvent) {
@@ -83,7 +83,7 @@ class EventsModel: ObservableObject {
         }
     }
 
-    func handle_nostr_event(relay_id: RelayURL, ev: NostrConnectionEvent) {
+    func handle_nostr_event(relay_id: RelayURL, ev: NostrConnectionEvent) async {
         guard case .nostr_event(let nev) = ev, nev.subid == self.sub_id
         else {
             return
@@ -103,7 +103,7 @@ class EventsModel: ObservableObject {
             guard let txn = NdbTxn(ndb: self.state.ndb) else {
                 return
             }
-            load_profiles(context: "events_model", profiles_subid: profiles_id, relay_id: relay_id, load: .from_events(events.all_events), damus_state: state, txn: txn)
+            await load_profiles(context: "events_model", profiles_subid: profiles_id, relay_id: relay_id, load: .from_events(events.all_events), damus_state: state, txn: txn)
         }
     }
 }

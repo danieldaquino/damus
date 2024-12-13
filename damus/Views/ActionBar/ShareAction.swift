@@ -72,10 +72,10 @@ struct ShareAction: View {
             }
         }
         .onAppear() {
-            userProfile.subscribeToFindRelays()
+            Task { await userProfile.subscribeToFindRelays() }
         }
         .onDisappear() {
-            userProfile.unsubscribeFindRelays()
+            Task { await userProfile.unsubscribeFindRelays() }
         }
     }
 }

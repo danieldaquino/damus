@@ -43,13 +43,13 @@ class ThreadModel: ObservableObject {
         return [profiles_subid, base_subid, meta_subid]
     }
     
-    func unsubscribe() {
-        self.damus_state.pool.remove_handler(sub_id: base_subid)
-        self.damus_state.pool.remove_handler(sub_id: meta_subid)
-        self.damus_state.pool.remove_handler(sub_id: profiles_subid)
-        self.damus_state.pool.unsubscribe(sub_id: base_subid)
-        self.damus_state.pool.unsubscribe(sub_id: meta_subid)
-        self.damus_state.pool.unsubscribe(sub_id: profiles_subid)
+    func unsubscribe() async {
+        await self.damus_state.pool.remove_handler(sub_id: base_subid)
+        await self.damus_state.pool.remove_handler(sub_id: meta_subid)
+        await self.damus_state.pool.remove_handler(sub_id: profiles_subid)
+        await self.damus_state.pool.unsubscribe(sub_id: base_subid)
+        await self.damus_state.pool.unsubscribe(sub_id: meta_subid)
+        await self.damus_state.pool.unsubscribe(sub_id: profiles_subid)
         print("unsubscribing from thread \(event.id) with sub_id \(base_subid)")
     }
     
@@ -62,7 +62,7 @@ class ThreadModel: ObservableObject {
         return false
     }
     
-    func subscribe() {
+    func subscribe() async {
         var meta_events = NostrFilter()
         var quote_events = NostrFilter()
         var event_filter = NostrFilter()
@@ -93,8 +93,8 @@ class ThreadModel: ObservableObject {
         let meta_filters = [meta_events, quote_events]
 
         print("subscribing to thread \(event.id) with sub_id \(base_subid)")
-        damus_state.pool.subscribe(sub_id: base_subid, filters: base_filters, handler: handle_event)
-        damus_state.pool.subscribe(sub_id: meta_subid, filters: meta_filters, handler: handle_event)
+        await damus_state.pool.subscribe(sub_id: base_subid, filters: base_filters, handler: handle_event)
+        await damus_state.pool.subscribe(sub_id: meta_subid, filters: meta_filters, handler: handle_event)
     }
     
     func add_event(_ ev: NostrEvent, keypair: Keypair) {
@@ -111,9 +111,9 @@ class ThreadModel: ObservableObject {
     }
 
     @MainActor
-    func handle_event(relay_id: RelayURL, ev: NostrConnectionEvent) {
+    func handle_event(relay_id: RelayURL, ev: NostrConnectionEvent) async {
 
-        let (sub_id, done) = handle_subid_event(pool: damus_state.pool, relay_id: relay_id, ev: ev) { sid, ev in
+        let (sub_id, done) = await handle_subid_event(pool: damus_state.pool, relay_id: relay_id, ev: ev) { sid, ev in
             guard subids.contains(sid) else {
                 return
             }
@@ -139,7 +139,7 @@ class ThreadModel: ObservableObject {
         
         if sub_id == self.base_subid {
             guard let txn = NdbTxn(ndb: damus_state.ndb) else { return }
-            load_profiles(context: "thread", profiles_subid: self.profiles_subid, relay_id: relay_id, load: .from_events(Array(event_map)), damus_state: damus_state, txn: txn)
+            await load_profiles(context: "thread", profiles_subid: self.profiles_subid, relay_id: relay_id, load: .from_events(Array(event_map)), damus_state: damus_state, txn: txn)
         }
     }
 

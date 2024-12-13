@@ -23,10 +23,10 @@ struct RepostsView: View {
         .padding(.bottom, tabHeight)
         .navigationBarTitle(NSLocalizedString("Reposts", comment: "Navigation bar title for Reposts view."))
         .onAppear {
-            model.subscribe()
+            Task { await model.subscribe() }
         }
         .onDisappear {
-            model.unsubscribe()
+            Task { await model.unsubscribe() }
         }
     }
 }

@@ -35,22 +35,24 @@ struct RelayDetailView: View {
 
     func RemoveRelayButton(_ keypair: FullKeypair) -> some View {
         Button(action: {
-            guard let ev = state.contacts.event else {
-                return
+            Task {
+                guard let ev = state.contacts.event else {
+                    return
+                }
+                
+                let descriptors = await state.pool.our_descriptors
+                guard let new_ev = remove_relay( ev: ev, current_relays: descriptors, keypair: keypair, relay: relay) else {
+                    return
+                }
+                
+                await process_contact_event(state: state, ev: new_ev)
+                await state.postbox.send(new_ev)
+                
+                if let relay_metadata = await make_relay_metadata(relays: state.pool.our_descriptors, keypair: keypair) {
+                    await state.postbox.send(relay_metadata)
+                }
+                dismiss()
             }
-
-            let descriptors = state.pool.our_descriptors
-            guard let new_ev = remove_relay( ev: ev, current_relays: descriptors, keypair: keypair, relay: relay) else {
-                return
-            }
-
-            process_contact_event(state: state, ev: new_ev)
-            state.postbox.send(new_ev)
-            
-            if let relay_metadata = make_relay_metadata(relays: state.pool.our_descriptors, keypair: keypair) {
-                state.postbox.send(relay_metadata)
-            }
-            dismiss()
         }) {
             HStack {
                 Text("Disconnect", comment: "Button to disconnect from the relay.")
@@ -63,19 +65,21 @@ struct RelayDetailView: View {
     
     func ConnectRelayButton(_ keypair: FullKeypair) -> some View {
         Button(action: {
-            guard let ev_before_add = state.contacts.event else {
-                return
+            Task {
+                guard let ev_before_add = state.contacts.event else {
+                    return
+                }
+                guard let ev_after_add = add_relay(ev: ev_before_add, keypair: keypair, current_relays: state.pool.our_descriptors, relay: relay, info: .rw) else {
+                    return
+                }
+                await process_contact_event(state: state, ev: ev_after_add)
+                await state.postbox.send(ev_after_add)
+                
+                if let relay_metadata = make_relay_metadata(relays: state.pool.our_descriptors, keypair: keypair) {
+                    await state.postbox.send(relay_metadata)
+                }
+                dismiss()
             }
-            guard let ev_after_add = add_relay(ev: ev_before_add, keypair: keypair, current_relays: state.pool.our_descriptors, relay: relay, info: .rw) else {
-                return
-            }
-            process_contact_event(state: state, ev: ev_after_add)
-            state.postbox.send(ev_after_add)
-
-            if let relay_metadata = make_relay_metadata(relays: state.pool.our_descriptors, keypair: keypair) {
-                state.postbox.send(relay_metadata)
-            }
-            dismiss()
         }) {
             HStack {
                 Text("Connect", comment: "Button to connect to the relay.")

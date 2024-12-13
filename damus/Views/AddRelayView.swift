@@ -78,47 +78,49 @@ struct AddRelayView: View {
             }
             
             Button(action: {
-                if new_relay.starts(with: "wss://") == false && new_relay.starts(with: "ws://") == false {
-                    new_relay = "wss://" + new_relay
+                Task {
+                    if new_relay.starts(with: "wss://") == false && new_relay.starts(with: "ws://") == false {
+                        new_relay = "wss://" + new_relay
+                    }
+                    
+                    guard let url = RelayURL(new_relay),
+                          let ev = state.contacts.event,
+                          let keypair = state.keypair.to_full() else {
+                        return
+                    }
+                    
+                    let info = RelayInfo.rw
+                    let descriptor = RelayDescriptor(url: url, info: info)
+                    
+                    do {
+                        try state.pool.add_relay(descriptor)
+                        relayAddErrorTitle = nil      // Clear error title
+                        relayAddErrorMessage = nil    // Clear error message
+                    } catch RelayError.RelayAlreadyExists {
+                        relayAddErrorTitle = NSLocalizedString("Duplicate relay", comment: "Title of the duplicate relay error message.")
+                        relayAddErrorMessage = NSLocalizedString("The relay you are trying to add is already added.\nYou're all set!", comment: "An error message that appears when the user attempts to add a relay that has already been added.")
+                        return
+                    } catch {
+                        return
+                    }
+                    
+                    state.pool.connect(to: [url])
+                    
+                    if let new_ev = add_relay(ev: ev, keypair: keypair, current_relays: state.pool.our_descriptors, relay: url, info: info) {
+                        await process_contact_event(state: state, ev: ev)
+                        
+                        await state.pool.send(.event(new_ev))
+                    }
+                    
+                    if let relay_metadata = make_relay_metadata(relays: state.pool.our_descriptors, keypair: keypair) {
+                        await state.postbox.send(relay_metadata)
+                    }
+                    new_relay = ""
+                    
+                    this_app.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    
+                    dismiss()
                 }
-
-                guard let url = RelayURL(new_relay),
-                      let ev = state.contacts.event,
-                      let keypair = state.keypair.to_full() else {
-                    return
-                }
-
-                let info = RelayInfo.rw
-                let descriptor = RelayDescriptor(url: url, info: info)
-
-                do {
-                    try state.pool.add_relay(descriptor)
-                    relayAddErrorTitle = nil      // Clear error title
-                    relayAddErrorMessage = nil    // Clear error message
-                } catch RelayError.RelayAlreadyExists {
-                    relayAddErrorTitle = NSLocalizedString("Duplicate relay", comment: "Title of the duplicate relay error message.")
-                    relayAddErrorMessage = NSLocalizedString("The relay you are trying to add is already added.\nYou're all set!", comment: "An error message that appears when the user attempts to add a relay that has already been added.")
-                    return
-                } catch {
-                    return
-                }
-
-                state.pool.connect(to: [url])
-
-                if let new_ev = add_relay(ev: ev, keypair: keypair, current_relays: state.pool.our_descriptors, relay: url, info: info) {
-                    process_contact_event(state: state, ev: ev)
-
-                    state.pool.send(.event(new_ev))
-                }
-
-                if let relay_metadata = make_relay_metadata(relays: state.pool.our_descriptors, keypair: keypair) {
-                    state.postbox.send(relay_metadata)
-                }
-                new_relay = ""
-
-                this_app.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                
-                dismiss()
             }) {
                 HStack {
                     Text("Add relay", comment: "Button to add a relay.")

@@ -54,42 +54,44 @@ struct AddMuteItemView: View {
             .cornerRadius(10)
 
             Button(action: {
-                let expiration_date: Date? = self.expiration.date_from_now
-                let mute_item: MuteItem? = {
-                    if new_text.starts(with: "npub") {
-                        if let pubkey: Pubkey = bech32_pubkey_decode(new_text) {
-                            return .user(pubkey, expiration_date)
+                Task {
+                    let expiration_date: Date? = self.expiration.date_from_now
+                    let mute_item: MuteItem? = {
+                        if new_text.starts(with: "npub") {
+                            if let pubkey: Pubkey = bech32_pubkey_decode(new_text) {
+                                return .user(pubkey, expiration_date)
+                            } else {
+                                return nil
+                            }
+                        } else if new_text.starts(with: "#") {
+                            // Remove the starting `#` character
+                            return .hashtag(Hashtag(hashtag: String("\(new_text)".dropFirst())), expiration_date)
                         } else {
-                            return nil
+                            return .word(new_text, expiration_date)
                         }
-                    } else if new_text.starts(with: "#") {
-                        // Remove the starting `#` character
-                        return .hashtag(Hashtag(hashtag: String("\(new_text)".dropFirst())), expiration_date)
-                    } else {
-                        return .word(new_text, expiration_date)
+                    }()
+                    
+                    // Actually update & relay the new mute list
+                    if let mute_item {
+                        let existing_mutelist = state.mutelist_manager.event
+                        
+                        guard
+                            let full_keypair = state.keypair.to_full(),
+                            let mutelist = create_or_update_mutelist(keypair: full_keypair, mprev: existing_mutelist, to_add: mute_item)
+                        else {
+                            return
+                        }
+                        
+                        state.mutelist_manager.set_mutelist(mutelist)
+                        await state.postbox.send(mutelist)
                     }
-                }()
-
-                // Actually update & relay the new mute list
-                if let mute_item {
-                    let existing_mutelist = state.mutelist_manager.event
-
-                    guard
-                        let full_keypair = state.keypair.to_full(),
-                        let mutelist = create_or_update_mutelist(keypair: full_keypair, mprev: existing_mutelist, to_add: mute_item)
-                    else {
-                        return
-                    }
-
-                    state.mutelist_manager.set_mutelist(mutelist)
-                    state.postbox.send(mutelist)
+                    
+                    new_text = ""
+                    
+                    this_app.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    
+                    dismiss()
                 }
-
-                new_text = ""
-
-                this_app.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-
-                dismiss()
             }) {
                 HStack {
                     Text("Add mute item", comment: "Button to an add an item to the user's mutelist.")

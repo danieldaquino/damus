@@ -134,7 +134,7 @@ struct ShareExtensionView: View {
                 self.highlighter_state = .not_logged_in
                 return
             }
-            self.state = DamusState(keypair: keypair)
+            Task { self.state = await DamusState(keypair: keypair) }
         })
         .onChange(of: self.highlighter_state) {
             if case .cancelled = highlighter_state {
@@ -142,11 +142,13 @@ struct ShareExtensionView: View {
             }
         }
         .onReceive(handle_notify(.post)) { post_notification in
-            switch post_notification {
+            Task {
+                switch post_notification {
                 case .post(let post):
-                    self.post(post)
+                    await self.post(post)
                 case .cancel:
                     self.highlighter_state = .cancelled
+                }
             }
         }
         .onChange(of: scenePhase) { (phase: ScenePhase) in
@@ -224,7 +226,7 @@ struct ShareExtensionView: View {
         }
     }
     
-    func post(_ post: NostrPost) {
+    func post(_ post: NostrPost) async {
         self.highlighter_state = .posting
         guard let state else {
             self.highlighter_state = .failed(error: "Damus state not initialized")
@@ -238,7 +240,7 @@ struct ShareExtensionView: View {
             self.highlighter_state = .failed(error: "Cannot convert post data into a nostr event")
             return
         }
-        state.postbox.send(posted_event, on_flush: .once({ flushed_event in
+        await state.postbox.send(posted_event, on_flush: .once({ flushed_event in
             if flushed_event.event.id == posted_event.id {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: {  // Offset labor perception bias
                     self.highlighter_state = .posted(event: flushed_event.event)

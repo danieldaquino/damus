@@ -155,12 +155,14 @@ struct ChatroomThreadView: View {
                 }
             }
             .onAppear() {
-                thread.subscribe()
-                self.compute_events()
-                scroll_to_event(scroller: scroller, id: thread.event.id, delay: 0.1, animate: false)
+                Task {
+                    await thread.subscribe()
+                    self.compute_events()
+                    scroll_to_event(scroller: scroller, id: thread.event.id, delay: 0.1, animate: false)
+                }
             }
             .onDisappear() {
-                thread.unsubscribe()
+                Task { await thread.unsubscribe() }
             }
         }
     }

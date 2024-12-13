@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct RelayInfo: Codable {
+public struct RelayInfo: Codable, Sendable {
     let read: Bool?
     let write: Bool?
     
@@ -25,7 +25,7 @@ enum RelayVariant {
     case nwc
 }
 
-public struct RelayDescriptor {
+public struct RelayDescriptor: Sendable {
     let url: RelayURL
     let info: RelayInfo
     let variant: RelayVariant
