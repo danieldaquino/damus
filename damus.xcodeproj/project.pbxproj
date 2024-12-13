@@ -1079,6 +1079,7 @@
 		D7373BA62B688EA300F7783D /* DamusPurpleTranslationSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7373BA52B688EA200F7783D /* DamusPurpleTranslationSetupView.swift */; };
 		D7373BA82B68974500F7783D /* DamusPurpleNewUserOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7373BA72B68974500F7783D /* DamusPurpleNewUserOnboardingView.swift */; };
 		D7373BAA2B68A65A00F7783D /* PurpleAccountUpdateNotify.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7373BA92B68A65A00F7783D /* PurpleAccountUpdateNotify.swift */; };
+		D7399BD12D0C48FC006696B2 /* UniqueInsertSortTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7399BD02D0C48FC006696B2 /* UniqueInsertSortTests.swift */; };
 		D73E5E162C6A9619007EB227 /* PostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C75EFA327FA577B0006080F /* PostView.swift */; };
 		D73E5E172C6A962A007EB227 /* ImageUploadModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CD348EE29C3659D00497EB2 /* ImageUploadModel.swift */; };
 		D73E5E182C6A963D007EB227 /* AttachMediaUtility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CA876E129A00CE90003B9A3 /* AttachMediaUtility.swift */; };
@@ -2417,6 +2418,7 @@
 		D7373BA52B688EA200F7783D /* DamusPurpleTranslationSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DamusPurpleTranslationSetupView.swift; sourceTree = "<group>"; };
 		D7373BA72B68974500F7783D /* DamusPurpleNewUserOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DamusPurpleNewUserOnboardingView.swift; sourceTree = "<group>"; };
 		D7373BA92B68A65A00F7783D /* PurpleAccountUpdateNotify.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurpleAccountUpdateNotify.swift; sourceTree = "<group>"; };
+		D7399BD02D0C48FC006696B2 /* UniqueInsertSortTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniqueInsertSortTests.swift; sourceTree = "<group>"; };
 		D73E5F7E2C6AA066007EB227 /* DamusAliases.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DamusAliases.swift; sourceTree = "<group>"; };
 		D73E5F802C6AA07A007EB227 /* HighlighterExtensionAliases.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlighterExtensionAliases.swift; sourceTree = "<group>"; };
 		D74AAFC12B153395006CF0F4 /* HeadlessDamusState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeadlessDamusState.swift; sourceTree = "<group>"; };
@@ -3300,6 +3302,7 @@
 			children = (
 				4C9B0DED2A65A75F00CBDA21 /* AttrStringTestExtensions.swift */,
 				B5B4D1422B37D47600844320 /* NdbExtensions.swift */,
+				D7399BD02D0C48FC006696B2 /* UniqueInsertSortTests.swift */,
 			);
 			path = Util;
 			sourceTree = "<group>";
@@ -4783,6 +4786,7 @@
 				4C363A9E2828A822006E126D /* ReplyTests.swift in Sources */,
 				4C7D097E2A0C58B900943473 /* WalletConnectTests.swift in Sources */,
 				4CB883AA297612FF00DC99E7 /* ZapTests.swift in Sources */,
+				D7399BD12D0C48FC006696B2 /* UniqueInsertSortTests.swift in Sources */,
 				D72A2D022AD9C136002AFF62 /* EventViewTests.swift in Sources */,
 				4CB8839A297322D200DC99E7 /* DMTests.swift in Sources */,
 				D7315A2C2ACDF4DA0036E30A /* DamusCacheManagerTests.swift in Sources */,
