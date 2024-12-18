@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Kingfisher
+import SwiftyCrop
 
 class ImageUploadingObserver: ObservableObject {
     @Published var isLoading: Bool = false
@@ -14,12 +15,14 @@ class ImageUploadingObserver: ObservableObject {
 
 struct EditPictureControl: View {
     let uploader: MediaUploader
+    let context: Context
     let keypair: Keypair?
     let pubkey: Pubkey
     var size: CGFloat? = 25
     var setup: Bool? = false
     @Binding var image_url: URL?
     @State var image_url_temp: URL?
+    @State var show_image_cropper: Bool = false
     @ObservedObject var uploadObserver: ImageUploadingObserver
     let callback: (URL?) -> Void
     
@@ -33,6 +36,11 @@ struct EditPictureControl: View {
     @State var preUploadedMedia: PreUploadedMedia? = nil
     
     @Environment(\.dismiss) var dismiss
+    
+    enum Context {
+        case normal
+        case profile_picture
+    }
 
     var body: some View {
         Menu {
@@ -115,7 +123,7 @@ struct EditPictureControl: View {
             }
         }
         .sheet(isPresented: $show_library) {
-            MediaPicker(mediaPickerEntry: .editPictureControl, image_upload_confirm: $image_upload_confirm) { media in
+            MediaPicker(mediaPickerEntry: .editPictureControl, image_upload_confirm: $show_image_cropper) { media in
                 self.preUploadedMedia = media
             }
             .alert(NSLocalizedString("Are you sure you want to upload this image?", comment: "Alert message asking if the user wants to upload an image."), isPresented: $image_upload_confirm) {
@@ -126,6 +134,24 @@ struct EditPictureControl: View {
                     }
                 }
                 Button(NSLocalizedString("Cancel", comment: "Button to cancel the upload."), role: .cancel) {}
+            }
+        }
+        .fullScreenCover(isPresented: $show_image_cropper) {
+            if let preUploadedMedia: PreUploadedMedia = self.preUploadedMedia {
+                switch preUploadedMedia {
+                    case .uiimage(let image):
+                        SwiftyCropView(
+                            imageToCrop: image,
+                            maskShape: .circle
+                        ) { croppedImage in
+                            guard let croppedImage else { return }
+                            self.preUploadedMedia = .uiimage(croppedImage)
+                            self.show_image_cropper = false
+                            self.image_upload_confirm = true
+                        }
+                    case .processed_image, .unprocessed_image, .processed_video, .unprocessed_video:
+                        Text("Nothing to crop?")
+                }
             }
         }
         .sheet(isPresented: $show_url_sheet) {
@@ -223,7 +249,7 @@ struct EditPictureControl_Previews: PreviewProvider {
         let observer = ImageUploadingObserver()
         ZStack {
             Color.gray
-            EditPictureControl(uploader: .nostrBuild, keypair: test_keypair, pubkey: test_pubkey, size: 100, setup: false, image_url: url, uploadObserver: observer) { _ in
+            EditPictureControl(uploader: .nostrBuild, context: .profile_picture, keypair: test_keypair, pubkey: test_pubkey, size: 100, setup: false, image_url: url, uploadObserver: observer) { _ in
                 //
             }
         }
