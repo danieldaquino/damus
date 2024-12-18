@@ -474,7 +474,7 @@ struct PostView: View {
             }
             .background(DamusColors.adaptableWhite.edgesIgnoringSafeArea(.all))
             .sheet(isPresented: $attach_media) {
-                MediaPicker(mediaPickerEntry: .postView, image_upload_confirm: $image_upload_confirm){ media in
+                MediaPicker(mediaPickerEntry: .postView){ media in
                     self.preUploadedMedia.append(media)
                 }
                 .alert(NSLocalizedString("Are you sure you want to upload the selected media?", comment: "Alert message asking if the user wants to upload media."), isPresented: $image_upload_confirm) {
