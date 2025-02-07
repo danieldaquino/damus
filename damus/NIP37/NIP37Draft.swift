@@ -8,11 +8,11 @@ import NostrSDK
 import Foundation
 
 /// This models a NIP-37 draft.
-/// 
+///
 /// It is an immutable data structure that automatically makes both sides of a NIP-37 draft available: Its unwrapped form and wrapped form.
-/// 
+///
 /// This is useful for keeping it or passing it around to other functions when both sides will be used, or it is not known which side of it will be used.
-/// 
+///
 /// Just initialize it, and read its properties.
 struct NIP37Draft {
     // MARK: Properties
@@ -73,34 +73,27 @@ struct NIP37Draft {
     ///   - keypair: the keys to use for encrypting
     /// - Returns: A NIP-37 draft, if it succeeds.
     static func wrap(note: NdbNote, draft_id: String, keypair: FullKeypair) throws -> NdbNote? {
-        let note_json_data = try JSONEncoder().encode(note)
-        guard let note_json_string = String(data: note_json_data, encoding: .utf8) else {
+        let jsonData = try JSONEncoder().encode(note)
+        guard let noteJSONString = String(data: jsonData, encoding: .utf8) else {
             throw NIP37DraftEventError.encoding_error
         }
-        guard let secret_key = SecretKey.from(privkey: keypair.privkey) else {
-            throw NIP37DraftEventError.invalid_keypair
+        //--
+        let draftPrivateWrapEvent = try DraftPrivateWrapEvent.Builder()
+            .identifier(draft_id)
+            .draftEventKind(EventKind(rawValue: Int(note.kind)))
+            .appendAnchorEvents(anchorEventTag1, anchorEventTag2)
+            .appendAnchorEventAddresses(anchorEventAddress1, anchorEventAddress2)
+            .draftContent(note.toNSDKEvent(), encryptedWith: keypair.toNSDKKeypair())
+            .build(signedBy: .test)
+        //--
+
+        builder.appendTags(["d": draft_id, "k": String(note.kind)])
+        if let repliedToNote = note.direct_replies() {
+            builder.appendAnchorEvents(["e": repliedToNote.hex()])
         }
-        guard let pubkey = PublicKey.from(pubkey: keypair.pubkey) else {
-            throw NIP37DraftEventError.invalid_keypair
-        }
-        guard let contents = try? nip44Encrypt(secretKey: secret_key, publicKey: pubkey, content: note_json_string, version: Nip44Version.v2) else {
-            return nil
-        }
-        var tags = [
-            ["d", draft_id],
-            ["k", String(note.kind)],
-        ]
-        
-        if let replied_to_note = note.direct_replies() {
-            tags.append(["e", replied_to_note.hex()])
-        }
-        guard let wrapped_event = NostrEvent(
-            content: contents,
-            keypair: keypair.to_keypair(),
-            kind: NostrKind.draft.rawValue,
-            tags: tags
-        ) else { return nil }
-        return wrapped_event
+
+        guard let draftEvent = try? builder.build() else { return nil }
+        return NdbNote.from(draftEvent) // Assuming implementation of from() method
     }
     
     /// A function that unwraps and decrypts a NIP-37 draft
@@ -109,20 +102,12 @@ struct NIP37Draft {
     ///   - keypair: The keys to use for decrypting
     /// - Returns: The unwrapped note, if it can be decrypted/unwrapped.
     static func unwrap(note: NdbNote, keypair: FullKeypair) throws -> NdbNote? {
-        let wrapped_note = note
-        guard wrapped_note.known_kind == .draft else { return nil }
-        guard let private_key = SecretKey.from(privkey: keypair.privkey) else {
-            throw NIP37DraftEventError.invalid_keypair
+        guard note.known_kind == .draft else { return nil }
+        let draftEvent = DraftPrivateWrapEvent.from(note: note) // Assuming cast or init
+        guard let unwrappedEvent = try? draftEvent.draftEvent(decryptedWith: keypair) else {
+            throw NIP37DraftEventError.decryptionFailed
         }
-        guard let pubkey = PublicKey.from(pubkey: keypair.pubkey) else {
-            throw NIP37DraftEventError.invalid_keypair
-        }
-        guard let draft_event_json = try? nip44Decrypt(
-            secretKey: private_key,
-            publicKey: pubkey,
-            payload: wrapped_note.content
-        ) else { return nil }
-        return NdbNote.owned_from_json(json: draft_event_json)
+        return NdbNote.from(unwrappedEvent) // Assuming implementation of from() method
     }
     
     enum NIP37DraftEventError: Error {
@@ -133,14 +118,4 @@ struct NIP37Draft {
 
 // MARK: - Convenience extensions
 
-fileprivate extension PublicKey {
-    static func from(pubkey: Pubkey) -> PublicKey? {
-        return try? PublicKey.parse(publicKey: pubkey.hex())
-    }
-}
 
-fileprivate extension SecretKey {
-    static func from(privkey: Privkey) -> SecretKey? {
-        return try? SecretKey.parse(secretKey: privkey.hex())
-    }
-}
