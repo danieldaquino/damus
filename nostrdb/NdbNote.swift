@@ -8,8 +8,6 @@
 import Foundation
 import NaturalLanguage
 import CommonCrypto
-import secp256k1
-import secp256k1_implementation
 import CryptoKit
 
 let MAX_NOTE_SIZE: Int = 2 << 18

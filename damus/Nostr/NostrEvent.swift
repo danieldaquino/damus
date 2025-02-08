@@ -7,8 +7,7 @@
 
 import Foundation
 import CommonCrypto
-import secp256k1
-import secp256k1_implementation
+import NostrSDK
 import CryptoKit
 import NaturalLanguage
 
@@ -20,302 +19,12 @@ enum ValidationResult: Decodable {
     case bad_sig
 }
 
-    /*
-class NostrEventOld: Codable, Identifiable, CustomStringConvertible, Equatable, Hashable, Comparable {
-    // TODO: memory mapped db events
-    private var note_data: UnsafeMutablePointer<ndb_note>
-
-    init(data: UnsafeMutablePointer<ndb_note>) {
-        self.note_data = data
-    }
-
-    var id: [UInt8] {
-        let buffer = UnsafeBufferPointer(start: ndb_note_id(note_data), count: 32)
-        return Array(buffer)
-    }
-
-    var content: String {
-        String(cString: ndb_note_content(self.note_data))
-    }
-
-    var sig: [UInt8] {
-        let buffer = UnsafeBufferPointer(start: ndb_note_signature(note_data), count: 64)
-        return Array(buffer)
-    }
-
-    var tags: TagIterator
-
-    let id: String
-    let content: String
-    let sig: String
-    let tags: Tags
-
-    //var boosted_by: String?
-
-    // cached field for pow calc
-    //var pow: Int?
-
-    // custom flags for internal use
-    //var flags: Int = 0
-
-    let pubkey: String
-    let created_at: UInt32
-    let kind: UInt32
-
-    // cached stuff
-    private var _event_refs: [EventRef]? = nil
-    var decrypted_content: String? = nil
-    private var _blocks: Blocks? = nil
-    private lazy var inner_event: NostrEventOld? = {
-        return event_from_json(dat: self.content)
-    }()
-
-    static func == (lhs: NostrEventOld, rhs: NostrEventOld) -> Bool {
-        return lhs.id == rhs.id
-    }
-
-    static func < (lhs: NostrEventOld, rhs: NostrEventOld) -> Bool {
-        return lhs.created_at < rhs.created_at
-    }
-
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-
-    private enum CodingKeys: String, CodingKey {
-        case id, sig, tags, pubkey, created_at, kind, content
-    }
-
-    static func owned_from_json(json: String) -> NostrEventOld? {
-        let decoder = JSONDecoder()
-        guard let dat = json.data(using: .utf8) else {
-            return nil
-        }
-        guard let ev = try? decoder.decode(NostrEventOld.self, from: dat) else {
-            return nil
-        }
-
-        return ev
-    }
-
-    init?(content: String, keypair: Keypair, kind: UInt32 = 1, tags: [[String]] = [], createdAt: UInt32 = UInt32(Date().timeIntervalSince1970)) {
-
-        self.content = content
-        self.pubkey = keypair.pubkey
-        self.kind = kind
-        self.tags = tags
-        self.created_at = createdAt
-
-        if let privkey = keypair.privkey {
-            self.id = hex_encode(calculate_event_id(pubkey: pubkey, created_at: created_at, kind: kind, tags: tags, content: content))
-            self.sig = sign_id(privkey: privkey, id: self.id)
-        } else {
-            self.id = ""
-            self.sig = ""
-        }
-    }
-}
-
-extension NostrEventOld {
-    var is_textlike: Bool {
-        return kind == 1 || kind == 42 || kind == 30023
-    }
-
-    var too_big: Bool {
-        return known_kind != .longform && self.content.utf8.count > 16000
-    }
-
-    var should_show_event: Bool {
-        return !too_big
-    }
-
-    func blocks(_ privkey: String?) -> Blocks {
-        if let bs = _blocks {
-            return bs
-        }
-        let blocks = get_blocks(content: self.get_content(privkey))
-        self._blocks = blocks
-        return blocks
-    }
-
-    func get_blocks(content: String) -> Blocks {
-        return parse_note_content(content: content, tags: self.tags)
-    }
-
-
-    func get_inner_event(cache: EventCache) -> NostrEventOld? {
-        guard self.known_kind == .boost else {
-            return nil
-        }
-
-        if self.content == "", let ref = self.referenced_ids.first {
-            return cache.lookup(ref.ref_id.string())
-        }
-
-        return self.inner_event
-    }
-
-    func event_refs(_ privkey: String?) -> [EventRef] {
-        if let rs = _event_refs {
-            return rs
-        }
-        let refs = interpret_event_refs(blocks: self.blocks(privkey).blocks, tags: self.tags)
-        self._event_refs = refs
-        return refs
-    }
-
-
-    func decrypted(privkey: String?) -> String? {
-        if let decrypted_content = decrypted_content {
-            return decrypted_content
-        }
-
-        guard let key = privkey else {
-            return nil
-        }
-
-        guard let our_pubkey = privkey_to_pubkey(privkey: key) else {
-            return nil
-        }
-
-        var pubkey = self.pubkey
-        // This is our DM, we need to use the pubkey of the person we're talking to instead
-        if our_pubkey == pubkey {
-            guard let refkey = self.referenced_pubkeys.first else {
-                return nil
-            }
-
-            pubkey = refkey.ref_id
-        }
-
-        let dec = decrypt_dm(key, pubkey: pubkey, content: self.content, encoding: .base64)
-        self.decrypted_content = dec
-
-        return dec
-    }
-
-    func get_content(_ privkey: String?) -> String {
-        if known_kind == .dm {
-            return decrypted(privkey: privkey) ?? "*failed to decrypt content*"
-        }
-
-        return content
-    }
-
-    var description: String {
-        return "NostrEvent { id: \(id) pubkey \(pubkey) kind \(kind) tags \(tags) content '\(content)' }"
-    }
-
-    var known_kind: NostrKind? {
-        return NostrKind.init(rawValue: kind)
-    }
-
-    private func get_referenced_ids(key: String) -> [ReferencedId] {
-        return damus.get_referenced_ids(tags: self.tags, key: key)
-    }
-
-    public func direct_replies(_ privkey: String?) -> [ReferencedId] {
-        return event_refs(privkey).reduce(into: []) { acc, evref in
-            if let direct_reply = evref.is_direct_reply {
-                acc.append(direct_reply)
-            }
-        }
-    }
-
-    public func thread_id(privkey: String?) -> String {
-        for ref in event_refs(privkey) {
-            if let thread_id = ref.is_thread_id {
-                return thread_id.ref_id
-            }
-        }
-
-        return self.id
-    }
-
-    public func last_refid() -> ReferencedId? {
-        var mlast: Int? = nil
-        var i: Int = 0
-        for tag in tags {
-            if tag.count >= 2 && tag[0] == "e" {
-                mlast = i
-            }
-            i += 1
-        }
-
-        guard let last = mlast else {
-            return nil
-        }
-
-        return tag_to_refid(tags[last])
-    }
-
-    public func references(id: String, key: AsciiCharacter) -> Bool {
-        for tag in tags {
-            if tag.count >= 2 && tag[0].matches_char(key) {
-                if tag[1] == id {
-                    return true
-                }
-            }
-        }
-
-        return false
-    }
-
-    func is_reply(_ privkey: String?) -> Bool {
-        return event_is_reply(self.event_refs(privkey))
-    }
-
-    func note_language(_ privkey: String?) -> String? {
-        // Rely on Apple's NLLanguageRecognizer to tell us which language it thinks the note is in
-        // and filter on only the text portions of the content as URLs and hashtags confuse the language recognizer.
-        let originalBlocks = blocks(privkey).blocks
-        let originalOnlyText = originalBlocks.compactMap { $0.is_text }.joined(separator: " ")
-
-        // Only accept language recognition hypothesis if there's at least a 50% probability that it's accurate.
-        let languageRecognizer = NLLanguageRecognizer()
-        languageRecognizer.processString(originalOnlyText)
-
-        guard let locale = languageRecognizer.languageHypotheses(withMaximum: 1).first(where: { $0.value >= 0.5 })?.key.rawValue else {
-            return nil
-        }
-
-        // Remove the variant component and just take the language part as translation services typically only supports the variant-less language.
-        // Moreover, speakers of one variant can generally understand other variants.
-        return localeToLanguage(locale)
-    }
-
-    public var referenced_ids: [ReferencedId] {
-        return get_referenced_ids(key: "e")
-    }
-
-    public var referenced_pubkeys: [ReferencedId] {
-        return get_referenced_ids(key: "p")
-    }
-
-    public var referenced_hashtags: [ReferencedId] {
-        return get_referenced_ids(key: "t")
-    }
-
-    var age: TimeInterval {
-        let event_date = Date(timeIntervalSince1970: TimeInterval(created_at))
-        return Date.now.timeIntervalSince(event_date)
-    }
-}
-     */
-
 func sign_id(privkey: String, id: String) -> String {
-    let priv_key_bytes = try! privkey.bytes
-    let key = try! secp256k1.Signing.PrivateKey(rawRepresentation: priv_key_bytes)
+    let keypair = NostrSDK.Keypair(hex: privkey)!
 
-    // Extra params for custom signing
+    let signature = try! keypair.privateKey.signatureForContent(id)
 
-    var aux_rand = random_bytes(count: 64).bytes
-    var digest = try! id.bytes
-
-    // API allows for signing variable length messages
-    let signature = try! key.schnorr.signature(message: &digest, auxiliaryRand: &aux_rand)
-
-    return hex_encode(signature.rawRepresentation)
+    return signature
 }
 
 func decode_nostr_event(txt: String) -> NostrResponse? {
@@ -337,31 +46,6 @@ func encode_json_data<T: Encodable>(_ val: T) throws -> Data {
 func decode_nostr_event_json(json: String) -> NostrEvent? {
     return NostrEvent.owned_from_json(json: json)
 }
-
-/*
-func decode_nostr_event_json(json: String) -> NostrEvent? {
-    guard let json_str = json.cString(using: .utf8) else {
-        return nil
-    }
-
-    // Allocate a double pointer (pointer to pointer) for ndb_note
-    var notePtr: UnsafeMutablePointer<ndb_note>? = nil
-
-    // Create the buffer
-    var buf = [Int8](repeating: 0, count: 2<<18)
-
-    // Call the C function
-    let result = withUnsafeMutablePointer(to: &notePtr) { (ptr) -> Int32 in
-        return ndb_note_from_json(json_str, Int32(json_str.count), ptr, &buf, Int32(buf.count))
-    }
-
-    guard result == 0, let note = notePtr?.pointee else {
-        return nil
-    }
-
-    return .init(data: note)
-}
-*/
 
 func decode_json<T: Decodable>(_ val: String) -> T? {
     return try? JSONDecoder().decode(T.self, from: Data(val.utf8))
@@ -552,39 +236,7 @@ func decrypt_note(our_privkey: Privkey, their_pubkey: Pubkey, enc_note: String, 
 }
 
 func get_shared_secret(privkey: Privkey, pubkey: Pubkey) -> [UInt8]? {
-    let privkey_bytes = privkey.bytes
-    var pk_bytes = pubkey.bytes
-
-    pk_bytes.insert(2, at: 0)
-    
-    var publicKey = secp256k1_pubkey()
-    var shared_secret = [UInt8](repeating: 0, count: 32)
-
-    var ok =
-        secp256k1_ec_pubkey_parse(
-            secp256k1.Context.raw,
-            &publicKey,
-            pk_bytes,
-            pk_bytes.count) != 0
-
-    if !ok {
-        return nil
-    }
-
-    ok = secp256k1_ecdh(
-        secp256k1.Context.raw,
-        &shared_secret,
-        &publicKey,
-        privkey_bytes, {(output,x32,_,_) in
-            memcpy(output,x32,32)
-            return 1
-        }, nil) != 0
-
-    if !ok {
-        return nil
-    }
-
-    return shared_secret
+    return try? LegacyEncryptedDirectMessageEvent.getSharedSecret(privateKey: privkey.toNSDKPrivateKey(), recipient: pubkey.toNSDKPublicKey())
 }
 
 enum EncEncoding {
@@ -720,27 +372,34 @@ func aes_operation(operation: CCOperation, data: [UInt8], iv: [UInt8], shared_se
 
 
 func validate_event(ev: NostrEvent) -> ValidationResult {
-    let id = calculate_event_id(pubkey: ev.pubkey, created_at: ev.created_at, kind: ev.kind, tags: ev.tags.strings(), content: ev.content)
-
-    if id != ev.id {
-        return .bad_id
+    let nsdkEvent = ev.toNSDKEvent()
+    do {
+        try nsdkEvent.verifyEvent()
+        return .ok
     }
-
-    let ctx = secp256k1.Context.raw
-    var xonly_pubkey = secp256k1_xonly_pubkey.init()
-
-    var ev_pubkey = ev.pubkey.id.bytes
-
-    var ok = secp256k1_xonly_pubkey_parse(ctx, &xonly_pubkey, &ev_pubkey) != 0
-    if !ok {
-        return .bad_sig
+    catch {
+        if let error = error as? NostrSDK.EventVerifyingError {
+            switch error {
+            case .invalidId:
+                return .bad_id
+            case .unsignedEvent:
+                return .unknown
+            }
+        }
+        else if let error = error as? NostrSDK.SignatureVerifyingError {
+            switch error {
+            case .unexpectedSignatureLength:
+                return .bad_sig
+            case .unexpectedPublicKeyLength:
+                return .unknown
+            case .invalidMessage:
+                return .bad_id
+            case .invalidSignature:
+                return .bad_sig
+            }
+        }
     }
-
-    var sig = ev.sig.data.bytes
-    var idbytes = id.id.bytes
-
-    ok = secp256k1_schnorrsig_verify(ctx, &sig, &idbytes, 32, &xonly_pubkey) > 0
-    return ok ? .ok : .bad_sig
+    return .unknown
 }
 
 func first_eref_mention(ev: NostrEvent, keypair: Keypair) -> Mention<NoteId>? {

@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import secp256k1
+import NostrSDK
 
 let PUBKEY_HRP = "npub"
 
@@ -106,17 +106,16 @@ func bech32_note_id(_ evid: NoteId) -> String {
 }
 
 func generate_new_keypair() -> FullKeypair {
-    let key = try! secp256k1.Signing.PrivateKey()
-    let privkey = Privkey(key.rawRepresentation)
-    let pubkey = Pubkey(Data(key.publicKey.xonly.bytes))
+    let key = NostrSDK.Keypair()!    // Here we assume keypair generation cannot fail, because it likely won't, and propagating errors will require big refactor
+    let privkey = Privkey(key.privateKey.dataRepresentation)
+    let pubkey = Pubkey(key.publicKey.dataRepresentation)
     return FullKeypair(pubkey: pubkey, privkey: privkey)
 }
 
 func privkey_to_pubkey_raw(sec: [UInt8]) -> Pubkey? {
-    guard let key = try? secp256k1.Signing.PrivateKey(rawRepresentation: sec) else {
-        return nil
-    }
-    return Pubkey(Data(key.publicKey.xonly.bytes))
+    guard let privateKey = NostrSDK.PrivateKey(dataRepresentation: Data(sec)) else { return nil }
+    guard let keypair = NostrSDK.Keypair(privateKey: privateKey) else { return nil }
+    return Pubkey(keypair.publicKey.dataRepresentation)
 }
 
 func privkey_to_pubkey(privkey: Privkey) -> Pubkey? {

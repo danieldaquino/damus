@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 55;
+	objectVersion = 60;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -204,7 +204,6 @@
 		4C64305C2A945AFF00B0C0E9 /* MusicController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C64305B2A945AFF00B0C0E9 /* MusicController.swift */; };
 		4C64987C286D03E000EAE2B3 /* DirectMessagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C64987B286D03E000EAE2B3 /* DirectMessagesView.swift */; };
 		4C64987E286D082C00EAE2B3 /* DirectMessagesModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C64987D286D082C00EAE2B3 /* DirectMessagesModel.swift */; };
-		4C649881286E0EE300EAE2B3 /* secp256k1 in Frameworks */ = {isa = PBXBuildFile; productRef = 4C649880286E0EE300EAE2B3 /* secp256k1 */; };
 		4C684A552A7E91FE005E6031 /* LongPostTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C684A542A7E91FE005E6031 /* LongPostTests.swift */; };
 		4C684A572A7FFAE6005E6031 /* UrlTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C684A562A7FFAE6005E6031 /* UrlTests.swift */; };
 		4C687C212A5F7ED00092C550 /* DamusBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C687C202A5F7ED00092C550 /* DamusBackground.swift */; };
@@ -893,7 +892,6 @@
 		82D6FC7B2CD99F7900C925F4 /* TestData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C687C262A6039500092C550 /* TestData.swift */; };
 		82D6FC7C2CD99F7900C925F4 /* ContentParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4DD3DA2A6CA7E8005B4E85 /* ContentParsing.swift */; };
 		82D6FC7D2CD99F7900C925F4 /* NotificationFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D70A3B162B02DCE5008BD568 /* NotificationFormatter.swift */; };
-		82D6FC812CD99FC500C925F4 /* secp256k1 in Frameworks */ = {isa = PBXBuildFile; productRef = 82D6FC802CD99FC500C925F4 /* secp256k1 */; };
 		82D6FC822CD9A45D00C925F4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4CE6DEEA27F7A08200C66700 /* Assets.xcassets */; };
 		82D6FC842CD9A48500C925F4 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 82D6FC832CD9A48500C925F4 /* Kingfisher */; };
 		82D6FC862CD9A4A600C925F4 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 82D6FC852CD9A4A600C925F4 /* MarkdownUI */; };
@@ -936,7 +934,6 @@
 		D703D7452C67090200A400EA /* MutelistManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B533694D2B66D791008A805E /* MutelistManager.swift */; };
 		D703D7462C67091A00A400EA /* Keys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C285C8B28398BC6008A31F1 /* Keys.swift */; };
 		D703D7472C67092700A400EA /* UserSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA693073295D649800ADDB87 /* UserSettingsStore.swift */; };
-		D703D7492C6709B100A400EA /* secp256k1 in Frameworks */ = {isa = PBXBuildFile; productRef = D703D7482C6709B100A400EA /* secp256k1 */; };
 		D703D74A2C6709C200A400EA /* MuteItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5C60C1F2B530D5100C5ECA7 /* MuteItem.swift */; };
 		D703D74B2C6709C900A400EA /* NoteId.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC14FF42A740BB7007AEB17 /* NoteId.swift */; };
 		D703D74C2C6709CE00A400EA /* Zaps.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB883A72975FC1800DC99E7 /* Zaps.swift */; };
@@ -1460,7 +1457,6 @@
 		D76556D62B1E6C08001B0CCC /* DamusPurpleWelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D76556D52B1E6C08001B0CCC /* DamusPurpleWelcomeView.swift */; };
 		D767066F2C8BB3CF00F09726 /* URLHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = D767066E2C8BB3CE00F09726 /* URLHandler.swift */; };
 		D76874F32AE3632B00FB0F68 /* ProfileZapLinkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D76874F22AE3632B00FB0F68 /* ProfileZapLinkView.swift */; };
-		D770BE412D569CF6009D4CCA /* NostrSDK in Frameworks */ = {isa = PBXBuildFile; productRef = D770BE402D569CF6009D4CCA /* NostrSDK */; };
 		D770BE432D56C918009D4CCA /* NostrSDKAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = D770BE422D56C918009D4CCA /* NostrSDKAdapters.swift */; };
 		D770BE442D56C918009D4CCA /* NostrSDKAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = D770BE422D56C918009D4CCA /* NostrSDKAdapters.swift */; };
 		D770BE452D56C918009D4CCA /* NostrSDKAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = D770BE422D56C918009D4CCA /* NostrSDKAdapters.swift */; };
@@ -1472,7 +1468,6 @@
 		D78525252A7B2EA4002FA637 /* NoteContentViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D78525242A7B2EA4002FA637 /* NoteContentViewTests.swift */; };
 		D7870BC12AC4750B0080BA88 /* MentionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7870BC02AC4750B0080BA88 /* MentionView.swift */; };
 		D7870BC32AC47EBC0080BA88 /* EventLoaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7870BC22AC47EBC0080BA88 /* EventLoaderView.swift */; };
-		D789D1202AFEFBF20083A7AB /* secp256k1 in Frameworks */ = {isa = PBXBuildFile; productRef = D789D11F2AFEFBF20083A7AB /* secp256k1 */; };
 		D78CD5982B8990300014D539 /* DamusAppNotificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D78CD5972B8990300014D539 /* DamusAppNotificationView.swift */; };
 		D78DB8592C1CE9CA00F0AB12 /* SwipeActions in Frameworks */ = {isa = PBXBuildFile; productRef = D78DB8582C1CE9CA00F0AB12 /* SwipeActions */; };
 		D78DB85B2C20FE5000F0AB12 /* VectorMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = D78DB85A2C20FE4F00F0AB12 /* VectorMath.swift */; };
@@ -1609,6 +1604,7 @@
 		D7D68FF92C9E01BE0015A515 /* KFClickable.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7D68FF82C9E01B60015A515 /* KFClickable.swift */; };
 		D7D68FFA2C9E01BE0015A515 /* KFClickable.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7D68FF82C9E01B60015A515 /* KFClickable.swift */; };
 		D7DBD41F2B02F15E002A6197 /* NostrKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C3BEFD32819DE8F00B3DE84 /* NostrKind.swift */; };
+		D7DECE2D2D571E4D009035B2 /* NostrSDK in Frameworks */ = {isa = PBXBuildFile; productRef = D7DECE2C2D571E4D009035B2 /* NostrSDK */; };
 		D7DEEF2F2A8C021E00E0C99F /* NostrEventTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7DEEF2E2A8C021E00E0C99F /* NostrEventTests.swift */; };
 		D7EB00B02CD59C8D00660C07 /* PresentFullScreenItemNotify.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7EB00AF2CD59C8300660C07 /* PresentFullScreenItemNotify.swift */; };
 		D7EB00B12CD59C8D00660C07 /* PresentFullScreenItemNotify.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7EB00AF2CD59C8300660C07 /* PresentFullScreenItemNotify.swift */; };
@@ -2525,13 +2521,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D770BE412D569CF6009D4CCA /* NostrSDK in Frameworks */,
 				4C06670428FC7EC500038D2A /* Kingfisher in Frameworks */,
 				3A0A30BB2C21397A00F8C9BC /* EmojiPicker in Frameworks */,
 				D70D90982CDED61800CD0534 /* CodeScanner in Frameworks */,
 				D7C48C0B2D12DE0C00A3BACF /* SwiftyCrop in Frameworks */,
 				D78DB8592C1CE9CA00F0AB12 /* SwipeActions in Frameworks */,
-				4C649881286E0EE300EAE2B3 /* secp256k1 in Frameworks */,
+				D7DECE2D2D571E4D009035B2 /* NostrSDK in Frameworks */,
 				4C27C9322A64766F007DBC75 /* MarkdownUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -2562,7 +2557,6 @@
 				D7C48C0D2D12E34900A3BACF /* SwiftyCrop in Frameworks */,
 				82D6FC882CD9A4DE00C925F4 /* EmojiPicker in Frameworks */,
 				82D6FC842CD9A48500C925F4 /* Kingfisher in Frameworks */,
-				82D6FC812CD99FC500C925F4 /* secp256k1 in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2575,7 +2569,6 @@
 				D73E5F762C6A997E007EB227 /* EmojiPicker in Frameworks */,
 				D703D7192C66E47100A400EA /* UniformTypeIdentifiers.framework in Frameworks */,
 				D7C48C0F2D12E35600A3BACF /* SwiftyCrop in Frameworks */,
-				D703D7492C6709B100A400EA /* secp256k1 in Frameworks */,
 				D70D909C2CDED7B200CD0534 /* CodeScanner in Frameworks */,
 				D73E5F9B2C6AA8B0007EB227 /* Kingfisher in Frameworks */,
 			);
@@ -2585,7 +2578,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D789D1202AFEFBF20083A7AB /* secp256k1 in Frameworks */,
 				D7EDED312B1290B80018B19C /* MarkdownUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -4006,14 +3998,13 @@
 			);
 			name = damus;
 			packageProductDependencies = (
-				4C649880286E0EE300EAE2B3 /* secp256k1 */,
 				4C06670328FC7EC500038D2A /* Kingfisher */,
 				4C27C9312A64766F007DBC75 /* MarkdownUI */,
 				3A0A30BA2C21397A00F8C9BC /* EmojiPicker */,
 				D78DB8582C1CE9CA00F0AB12 /* SwipeActions */,
 				D70D90972CDED61800CD0534 /* CodeScanner */,
 				D7C48C0A2D12DE0C00A3BACF /* SwiftyCrop */,
-				D770BE402D569CF6009D4CCA /* NostrSDK */,
+				D7DECE2C2D571E4D009035B2 /* NostrSDK */,
 			);
 			productName = damus;
 			productReference = 4CE6DEE327F7A08100C66700 /* damus.app */;
@@ -4073,7 +4064,6 @@
 			);
 			name = ShareExtension;
 			packageProductDependencies = (
-				82D6FC802CD99FC500C925F4 /* secp256k1 */,
 				82D6FC832CD9A48500C925F4 /* Kingfisher */,
 				82D6FC852CD9A4A600C925F4 /* MarkdownUI */,
 				82D6FC872CD9A4DE00C925F4 /* EmojiPicker */,
@@ -4101,7 +4091,6 @@
 			);
 			name = HighlighterActionExtension;
 			packageProductDependencies = (
-				D703D7482C6709B100A400EA /* secp256k1 */,
 				D703D7AE2C670FB700A400EA /* MarkdownUI */,
 				D73E5F752C6A997E007EB227 /* EmojiPicker */,
 				D73E5F9A2C6AA8B0007EB227 /* Kingfisher */,
@@ -4128,7 +4117,6 @@
 			);
 			name = DamusNotificationService;
 			packageProductDependencies = (
-				D789D11F2AFEFBF20083A7AB /* secp256k1 */,
 				D7EDED302B1290B80018B19C /* MarkdownUI */,
 			);
 			productName = DamusNotificationService;
@@ -4208,7 +4196,6 @@
 			);
 			mainGroup = 4CE6DEDA27F7A08100C66700;
 			packageReferences = (
-				4C64987F286E0EE300EAE2B3 /* XCRemoteSwiftPackageReference "secp256k1" */,
 				4C06670228FC7EC500038D2A /* XCRemoteSwiftPackageReference "Kingfisher" */,
 				4CCF9AB02A1FE80B00E03CFB /* XCRemoteSwiftPackageReference "GSPlayer" */,
 				4C27C9302A64766F007DBC75 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
@@ -4217,7 +4204,7 @@
 				D78DB8572C1CE9CA00F0AB12 /* XCRemoteSwiftPackageReference "SwipeActions" */,
 				D70D90962CDED61800CD0534 /* XCRemoteSwiftPackageReference "CodeScanner" */,
 				D7C48C092D12DE0C00A3BACF /* XCRemoteSwiftPackageReference "SwiftyCrop" */,
-				D770BE3F2D569CF6009D4CCA /* XCRemoteSwiftPackageReference "nostr-sdk-ios" */,
+				D7DECE2B2D571E4D009035B2 /* XCLocalSwiftPackageReference "../nostr-sdk-ios" */,
 			);
 			productRefGroup = 4CE6DEE427F7A08100C66700 /* Products */;
 			projectDirPath = "";
@@ -6714,6 +6701,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		D7DECE2B2D571E4D009035B2 /* XCLocalSwiftPackageReference "../nostr-sdk-ios" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../nostr-sdk-ios";
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		3A0A30B92C21397A00F8C9BC /* XCRemoteSwiftPackageReference "EmojiPicker" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -6739,14 +6733,6 @@
 				kind = branch;
 			};
 		};
-		4C64987F286E0EE300EAE2B3 /* XCRemoteSwiftPackageReference "secp256k1" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/jb55/secp256k1.swift";
-			requirement = {
-				kind = revision;
-				revision = 40b4b38b3b1c83f7088c76189a742870e0ca06a9;
-			};
-		};
 		4CCF9AB02A1FE80B00E03CFB /* XCRemoteSwiftPackageReference "GSPlayer" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/wxxsw/GSPlayer";
@@ -6761,14 +6747,6 @@
 			requirement = {
 				kind = revision;
 				revision = 9fa582f4b36c69c2a55bff5fb3377eb170ae273c;
-			};
-		};
-		D770BE3F2D569CF6009D4CCA /* XCRemoteSwiftPackageReference "nostr-sdk-ios" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/danieldaquino/nostr-sdk-ios";
-			requirement = {
-				branch = "gh-2841";
-				kind = branch;
 			};
 		};
 		D78DB8572C1CE9CA00F0AB12 /* XCRemoteSwiftPackageReference "SwipeActions" */ = {
@@ -6813,16 +6791,6 @@
 			package = 4C27C9302A64766F007DBC75 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
 			productName = MarkdownUI;
 		};
-		4C649880286E0EE300EAE2B3 /* secp256k1 */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4C64987F286E0EE300EAE2B3 /* XCRemoteSwiftPackageReference "secp256k1" */;
-			productName = secp256k1;
-		};
-		82D6FC802CD99FC500C925F4 /* secp256k1 */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4C64987F286E0EE300EAE2B3 /* XCRemoteSwiftPackageReference "secp256k1" */;
-			productName = secp256k1;
-		};
 		82D6FC832CD9A48500C925F4 /* Kingfisher */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 4C06670228FC7EC500038D2A /* XCRemoteSwiftPackageReference "Kingfisher" */;
@@ -6842,11 +6810,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = D78DB8572C1CE9CA00F0AB12 /* XCRemoteSwiftPackageReference "SwipeActions" */;
 			productName = SwipeActions;
-		};
-		D703D7482C6709B100A400EA /* secp256k1 */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4C64987F286E0EE300EAE2B3 /* XCRemoteSwiftPackageReference "secp256k1" */;
-			productName = secp256k1;
 		};
 		D703D7AC2C670FA700A400EA /* MarkdownUI */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -6888,16 +6851,6 @@
 			package = D78DB8572C1CE9CA00F0AB12 /* XCRemoteSwiftPackageReference "SwipeActions" */;
 			productName = SwipeActions;
 		};
-		D770BE402D569CF6009D4CCA /* NostrSDK */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = D770BE3F2D569CF6009D4CCA /* XCRemoteSwiftPackageReference "nostr-sdk-ios" */;
-			productName = NostrSDK;
-		};
-		D789D11F2AFEFBF20083A7AB /* secp256k1 */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4C64987F286E0EE300EAE2B3 /* XCRemoteSwiftPackageReference "secp256k1" */;
-			productName = secp256k1;
-		};
 		D78DB8582C1CE9CA00F0AB12 /* SwipeActions */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = D78DB8572C1CE9CA00F0AB12 /* XCRemoteSwiftPackageReference "SwipeActions" */;
@@ -6927,6 +6880,10 @@
 			isa = XCSwiftPackageProductDependency;
 			package = D7C48C092D12DE0C00A3BACF /* XCRemoteSwiftPackageReference "SwiftyCrop" */;
 			productName = SwiftyCrop;
+		};
+		D7DECE2C2D571E4D009035B2 /* NostrSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = NostrSDK;
 		};
 		D7EDED242B117F7C0018B19C /* MarkdownUI */ = {
 			isa = XCSwiftPackageProductDependency;

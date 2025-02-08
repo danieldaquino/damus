@@ -46,3 +46,15 @@ extension FullKeypair {
         return NostrSDK.Keypair(hex: self.privkey.hex())!   // We can guarantee at compile time that `hex()` yields a valid string, ok to force-unwrap
     }
 }
+
+extension Privkey {
+    func toNSDKPrivateKey() -> NostrSDK.PrivateKey {
+        return NostrSDK.PrivateKey(dataRepresentation: self.id)!    // Easy to guarantee this won't fail on runtime, ok to force-unwrap
+    }
+}
+
+extension Pubkey {
+    func toNSDKPublicKey() -> NostrSDK.PublicKey {
+        return NostrSDK.PublicKey(dataRepresentation: self.id)!     // Easy to guarantee this won't fail on runtime, ok to force-unwrap
+    }
+}
