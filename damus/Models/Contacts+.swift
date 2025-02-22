@@ -63,7 +63,7 @@ func follow_user_event(our_contacts: NostrEvent?, keypair: FullKeypair, follow: 
 }
 
 
-func decode_json_relays(_ content: String) -> [RelayURL: RelayInfo]? {
+func decode_json_relays(_ content: String) -> [RelayURL: RelayRWConfiguration]? {
     return decode_json(content)
 }
 
@@ -98,7 +98,7 @@ func add_relay(ev: NostrEvent, keypair: FullKeypair, current_relays: [RelayDescr
     return NostrEvent(content: content, keypair: keypair.to_keypair(), kind: 3, tags: ev.tags.strings())
 }
 
-func ensure_relay_info(relays: [RelayDescriptor], content: String) -> [RelayURL: RelayInfo] {
+func ensure_relay_info(relays: [RelayDescriptor], content: String) -> [RelayURL: RelayRWConfiguration] {
     return decode_json_relays(content) ?? make_contact_relays(relays)
 }
 
@@ -129,7 +129,7 @@ func follow_with_existing_contacts(keypair: FullKeypair, our_contacts: NostrEven
     return NostrEvent(content: our_contacts.content, keypair: keypair.to_keypair(), kind: kind, tags: tags)
 }
 
-func make_contact_relays(_ relays: [RelayDescriptor]) -> [RelayURL: RelayInfo] {
+func make_contact_relays(_ relays: [RelayDescriptor]) -> [RelayURL: RelayRWConfiguration] {
     return relays.reduce(into: [:]) { acc, relay in
         acc[relay.url] = relay.info
     }
