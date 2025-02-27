@@ -69,6 +69,16 @@ extension NIP65 {
                 createdAt: timestamp ?? UInt32(Date.now.timeIntervalSince1970)
             )
         }
+        
+        func toNostrEvent(keypair: FullKeypair, timestamp: UInt32? = nil) -> NostrEvent? {
+            return NdbNote(
+                content: "",
+                keypair: keypair.to_keypair(),
+                kind: NostrKind.relay_list.rawValue,
+                tags: self.relays.values.map({ $0.tag }),
+                createdAt: timestamp ?? UInt32(Date.now.timeIntervalSince1970)
+            )
+        }
     }
 }
 
