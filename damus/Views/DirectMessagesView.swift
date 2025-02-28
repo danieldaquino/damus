@@ -10,6 +10,7 @@ import SwiftUI
 enum DMType: Hashable {
     case rando
     case friend
+    case invites
 }
 
 struct DirectMessagesView: View {
@@ -20,20 +21,26 @@ struct DirectMessagesView: View {
     @ObservedObject var settings: UserSettingsStore
 
     func MainContent(requests: Bool) -> some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                let dms = requests ? model.message_requests : model.friend_dms
-                let filtered_dms = filter_dms(dms: dms)
-                if filtered_dms.isEmpty, !model.loading {
-                    EmptyTimelineView()
-                } else {
-                    ForEach(filtered_dms, id: \.pubkey) { dm in
-                        MaybeEvent(dm)
-                            .padding(.top, 10)
+        Group {
+            if dm_type == .invites {
+                InvitesView(damus_state: damus_state)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        let dms = requests ? model.message_requests : model.friend_dms
+                        let filtered_dms = filter_dms(dms: dms)
+                        if filtered_dms.isEmpty, !model.loading {
+                            EmptyTimelineView()
+                        } else {
+                            ForEach(filtered_dms, id: \.pubkey) { dm in
+                                MaybeEvent(dm)
+                                    .padding(.top, 10)
+                            }
+                        }
                     }
+                    .padding(.horizontal)
                 }
             }
-            .padding(.horizontal)
         }
         .padding(.bottom, tabHeight)
     }
@@ -76,6 +83,7 @@ struct DirectMessagesView: View {
             CustomPicker(tabs: [
                 (NSLocalizedString("DMs", comment: "Picker option for DM selector for seeing only DMs that have been responded to. DM is the English abbreviation for Direct Message."), DMType.friend),
                 (NSLocalizedString("Requests", comment: "Picker option for DM selector for seeing only message requests (DMs that someone else sent the user which has not been responded to yet"), DMType.rando),
+                (NSLocalizedString("Invites", comment: "Picker option for DM selector for seeing your chat invite links. Others can use them to securely contact you."), DMType.invites),
             ], selection: $dm_type)
 
             Divider()
@@ -87,6 +95,9 @@ struct DirectMessagesView: View {
                 
                 MainContent(requests: true)
                     .tag(DMType.rando)
+                    
+                MainContent(requests: false)
+                    .tag(DMType.invites)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
         }
