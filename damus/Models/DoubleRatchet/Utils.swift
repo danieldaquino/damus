@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 extension DoubleRatchet {
     static func serializeSessionState(_ state: SessionState) throws -> String {

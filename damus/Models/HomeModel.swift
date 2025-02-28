@@ -225,6 +225,14 @@ class HomeModel: ContactsDelegate {
             // TODO: Implement draft syncing with relays. We intentionally do not support that as of writing. See `DraftsModel.swift` for other details
             // try? damus_state.drafts.load(wrapped_draft_note: ev, with: damus_state)
             break
+        case .double_ratchet_message:
+            break
+        case .application_specific_data:
+            break
+        case .gift_wrap:
+            break
+        case .chat_message:
+            break
         }
     }
 

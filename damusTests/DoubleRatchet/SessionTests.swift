@@ -62,10 +62,20 @@ final class SessionTests: XCTestCase {
         var messageQueue: [NostrEvent] = []
         
         let mockSubscribe: DoubleRatchet.NostrSubscribe = { filter, onEvent in
-            if let index = messageQueue.firstIndex(where: { _ in true }) {
-                let event = messageQueue.remove(at: index)
-                onEvent(event)
+            print("Mock subscribe called for filter:", filter)
+            
+            // Create a task to continuously monitor the queue
+            Task {
+                while true {
+                    if let index = messageQueue.firstIndex(where: { _ in true }) {
+                        let event = messageQueue.remove(at: index)
+                        print("Processing event from queue:", event.id.hex().prefix(8))
+                        onEvent(event)
+                    }
+                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 second delay
+                }
             }
+            
             return {}
         }
         
@@ -92,20 +102,16 @@ final class SessionTests: XCTestCase {
         
         let initialReceivingChainKey = bob.state.receivingChainKey
         
-        let expectation = XCTestExpectation(description: "Message received")
-        var receivedMessage: String?
-        
-        _ = bob.onEvent { rumor, _ in
-            receivedMessage = rumor.content
-            expectation.fulfill()
-        }
+        var bobMessages = DoubleRatchet.createEventStream(bob).makeAsyncIterator()
         
         let (event, _) = try alice.sendText("Hello, Bob!")
+        print("Adding Alice's event to queue:", event.id.hex().prefix(8))
         messageQueue.append(event)
         
-        await fulfillment(of: [expectation], timeout: 1.0)
-        
-        XCTAssertEqual(receivedMessage, "Hello, Bob!")
+        // Wait for Bob to receive
+        print("Waiting for Bob to receive message...")
+        let bobReceived = await bobMessages.next()
+        XCTAssertEqual(bobReceived?.content, "Hello, Bob!")
         XCTAssertNotEqual(bob.state.receivingChainKey, initialReceivingChainKey)
     }
     
@@ -113,10 +119,20 @@ final class SessionTests: XCTestCase {
         var messageQueue: [NostrEvent] = []
         
         let mockSubscribe: DoubleRatchet.NostrSubscribe = { filter, onEvent in
-            if let index = messageQueue.firstIndex(where: { _ in true }) {
-                let event = messageQueue.remove(at: index)
-                onEvent(event)
+            print("Mock subscribe called for filter:", filter)
+            
+            // Create a task to continuously monitor the queue
+            Task {
+                while true {
+                    if let index = messageQueue.firstIndex(where: { _ in true }) {
+                        let event = messageQueue.remove(at: index)
+                        print("Processing event from queue:", event.id.hex().prefix(8))
+                        onEvent(event)
+                    }
+                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 second delay
+                }
             }
+            
             return {}
         }
         
@@ -141,35 +157,28 @@ final class SessionTests: XCTestCase {
             name: "bob"
         )
         
-        let aliceExpectation = XCTestExpectation(description: "Alice received message")
-        let bobExpectation = XCTestExpectation(description: "Bob received message")
-        
-        var aliceReceivedMessage: String?
-        var bobReceivedMessage: String?
-        
-        _ = alice.onEvent { rumor, _ in
-            aliceReceivedMessage = rumor.content
-            aliceExpectation.fulfill()
-        }
-        
-        _ = bob.onEvent { rumor, _ in
-            bobReceivedMessage = rumor.content
-            bobExpectation.fulfill()
-        }
+        var bobMessages = DoubleRatchet.createEventStream(bob).makeAsyncIterator()
+        var aliceMessages = DoubleRatchet.createEventStream(alice).makeAsyncIterator()
         
         // Alice sends to Bob
         let (aliceEvent, _) = try alice.sendText("Hello Bob!")
+        print("Adding Alice's event to queue:", aliceEvent.id.hex().prefix(8))
         messageQueue.append(aliceEvent)
         
-        await fulfillment(of: [bobExpectation], timeout: 1.0)
-        XCTAssertEqual(bobReceivedMessage, "Hello Bob!")
+        // Wait for Bob to receive
+        print("Waiting for Bob to receive message...")
+        let bobReceived = await bobMessages.next()
+        XCTAssertEqual(bobReceived?.content, "Hello Bob!")
         
-        // Bob replies to Alice
+        // Now Bob can reply
         let (bobEvent, _) = try bob.sendText("Hi Alice!")
+        print("Adding Bob's event to queue:", bobEvent.id.hex().prefix(8))
         messageQueue.append(bobEvent)
         
-        await fulfillment(of: [aliceExpectation], timeout: 1.0)
-        XCTAssertEqual(aliceReceivedMessage, "Hi Alice!")
+        // Wait for Alice to receive
+        print("Waiting for Alice to receive message...")
+        let aliceReceived = await aliceMessages.next()
+        XCTAssertEqual(aliceReceived?.content, "Hi Alice!")
     }
     
     func testOutOfOrderMessageDelivery() async throws {

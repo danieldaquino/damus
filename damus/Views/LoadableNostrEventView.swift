@@ -74,7 +74,7 @@ class LoadableNostrEventViewModel: ObservableObject {
             case .zap, .zap_request:
                 guard let zap = await get_zap(from: ev, state: damus_state) else { return .not_found }
                 return .loaded(route: Route.Zaps(target: zap.target))
-            case .contacts, .metadata, .delete, .boost, .chat, .mute_list, .list_deprecated, .draft, .longform, .zap, .zap_request, .nwc_request, .nwc_response, .http_auth, .status:
+            case .contacts, .metadata, .delete, .boost, .chat, .mute_list, .list_deprecated, .draft, .longform, .nwc_request, .nwc_response, .http_auth, .status, .double_ratchet_message, .application_specific_data, .gift_wrap, .chat_message:
                 return .unknown_or_unsupported_kind
             }
         case .naddr(let naddr):
@@ -146,7 +146,7 @@ struct LoadableNostrEventView: View {
     var unknown_or_unsupported_kind: some View {
         SomethingWrong(
             imageSystemName: "questionmark.app",
-            heading: NSLocalizedString("Can’t display note", comment: "User-visible heading for an error message indicating a note has an unknown kind or is unsupported for viewing."),
+            heading: NSLocalizedString("Can't display note", comment: "User-visible heading for an error message indicating a note has an unknown kind or is unsupported for viewing."),
             description: NSLocalizedString("We do not yet support viewing this type of content.", comment: "User-visible description of an error indicating a note has an unknown kind or is unsupported for viewing."),
             advice: NSLocalizedString("Please try opening this content on another Nostr app that supports this type of content.", comment: "User-visible advice on what to do if they see the error indicating a note has an unknown kind or is unsupported for viewing.")
         )
@@ -203,7 +203,7 @@ struct LoadableNostrEventView: View {
                 Text(verbatim: "Satoshi Nakamoto")
                     .bold()
             }
-            Text(verbatim: "Nostr is the super app. Because it’s actually an ecosystem of apps, all of which make each other better. People haven’t grasped that yet. They will when it’s more accessible and onboarding is more straightforward and intuitive.")
+            Text(verbatim: "Nostr is the super app. Because it's actually an ecosystem of apps, all of which make each other better. People haven't grasped that yet. They will when it's more accessible and onboarding is more straightforward and intuitive.")
             HStack {
                 self.skeleton_action_item
                 Spacer()
