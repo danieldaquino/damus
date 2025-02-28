@@ -28,4 +28,8 @@ enum NostrKind: UInt32, Codable {
     case nwc_response = 23195
     case http_auth = 27235
     case status = 30315
+    case double_ratchet_message = 1060
+    case application_specific_data = 30078
+    case gift_wrap = 1059
+    case chat_message = 14
 }

@@ -16,6 +16,10 @@ class Session {
     internal var state: DoubleRatchet.SessionState
     private var subscriptions: [Int: DoubleRatchet.EventCallback] = [:]
     private var currentSubscriptionId = 0
+    private var nostrUnsubscribe: DoubleRatchet.Unsubscribe?
+    private var nostrNextUnsubscribe: DoubleRatchet.Unsubscribe?
+    private var skippedSubscription: DoubleRatchet.Unsubscribe?
+    private let nostrSubscribe: DoubleRatchet.NostrSubscribe
     var name: String
     
     // MARK: - Types
@@ -25,8 +29,9 @@ class Session {
     
     // MARK: - Double Ratchet Initialization
     
-    init(state: DoubleRatchet.SessionState, name: String) {
+    init(state: DoubleRatchet.SessionState, nostrSubscribe: @escaping DoubleRatchet.NostrSubscribe, name: String) {
         self.state = state
+        self.nostrSubscribe = nostrSubscribe
         self.name = name
     }
     
@@ -35,29 +40,25 @@ class Session {
         ourEphemeralNostrPrivateKey: Privkey,
         isInitiator: Bool,
         sharedSecret: Data,
+        nostrSubscribe: @escaping DoubleRatchet.NostrSubscribe,
         name: String? = nil
     ) throws -> Session {
-        let ourNextPrivateKey = generatePrivateKey()
-        let ourNextPubkey = try! privkey_to_pubkey(privkey: Privkey(ourNextPrivateKey))!
+        let ourNextKeypair = generate_new_keypair()
         
         let conversationKey = try NIP44v2Encryption.conversationKey(
-            privateKeyA: Privkey(ourNextPrivateKey),
+            privateKeyA: ourEphemeralNostrPrivateKey,
             publicKeyB: theirEphemeralNostrPublicKey
         )
         
-        let (rootKey, sendingChainKey) = try kdf(sharedSecret, conversationKey, 2)
+        let (rootKey, sendingChainKey) = try DoubleRatchet.kdf(sharedSecret, conversationKey, 2)
         
         var ourCurrentNostrKey: FullKeypair?
-        let ourNextNostrKey: FullKeypair
         
         if isInitiator {
             ourCurrentNostrKey = FullKeypair(
                 pubkey: try! privkey_to_pubkey(privkey: ourEphemeralNostrPrivateKey)!,
                 privkey: ourEphemeralNostrPrivateKey
             )
-            ourNextNostrKey = FullKeypair(pubkey: ourNextPubkey, privkey: Privkey(ourNextPrivateKey))
-        } else {
-            ourNextNostrKey = FullKeypair(pubkey: ourNextPubkey, privkey: Privkey(ourNextPrivateKey))
         }
         
         let state = DoubleRatchet.SessionState(
@@ -65,7 +66,7 @@ class Session {
             theirCurrentNostrPublicKey: nil,
             theirNextNostrPublicKey: theirEphemeralNostrPublicKey,
             ourCurrentNostrKey: ourCurrentNostrKey,
-            ourNextNostrKey: ourNextNostrKey,
+            ourNextNostrKey: ourNextKeypair,
             receivingChainKey: nil,
             sendingChainKey: isInitiator ? sendingChainKey : nil,
             sendingChainMessageNumber: 0,
@@ -74,13 +75,25 @@ class Session {
             skippedKeys: [:]
         )
         
-        return Session(state: state, name: name ?? String(Int.random(in: 0...9999), radix: 36))
+        return Session(
+            state: state,
+            nostrSubscribe: nostrSubscribe,
+            name: name ?? String(Int.random(in: 0...9999), radix: 36)
+        )
     }
     
     // MARK: - Public Methods
     
-    func send(_ text: String) throws -> (event: NostrEvent, innerEvent: DoubleRatchet.Rumor) {
-        return try sendEvent(content: text, kind: DoubleRatchet.Constants.CHAT_MESSAGE_KIND)
+    func sendText(_ text: String) throws -> (event: NostrEvent, innerEvent: DoubleRatchet.Rumor) {
+        let partialRumor = DoubleRatchet.Rumor(
+            id: "",  // Will be calculated later
+            content: text,
+            kind: DoubleRatchet.Constants.CHAT_MESSAGE_KIND,
+            created_at: UInt32(Date().timeIntervalSince1970),
+            tags: [],
+            pubkey: DoubleRatchet.Constants.DUMMY_PUBKEY
+        )
+        return try sendEvent(rumor: partialRumor)
     }
     
     func onEvent(_ callback: @escaping DoubleRatchet.EventCallback) -> Unsubscribe {
@@ -94,13 +107,16 @@ class Session {
     }
     
     func close() {
+        nostrUnsubscribe?()
+        nostrNextUnsubscribe?()
+        skippedSubscription?()
         subscriptions.removeAll()
     }
     
     // MARK: - Private Methods - Ratchet Operations
     
     private func ratchetEncrypt(_ plaintext: String) throws -> (DoubleRatchet.Header, String) {
-        let (newSendingChainKey, messageKey) = try kdf(state.sendingChainKey!, bytesToData([UInt8](repeating: 1, count: 1)), 2)
+        let (newSendingChainKey, messageKey) = try DoubleRatchet.kdf(state.sendingChainKey!, DoubleRatchet.bytesToData([UInt8](repeating: 1, count: 1)), 2)
         state.sendingChainKey = newSendingChainKey
         
         let header = DoubleRatchet.Header(
@@ -120,7 +136,7 @@ class Session {
         
         try skipMessageKeys(until: header.number, nostrSender: nostrSender)
         
-        let (newReceivingChainKey, messageKey) = try kdf(state.receivingChainKey!, bytesToData([UInt8](repeating: 1, count: 1)), 2)
+        let (newReceivingChainKey, messageKey) = try DoubleRatchet.kdf(state.receivingChainKey!, DoubleRatchet.bytesToData([UInt8](repeating: 1, count: 1)), 2)
         state.receivingChainKey = newReceivingChainKey
         state.receivingChainMessageNumber += 1
         
@@ -143,22 +159,18 @@ class Session {
             publicKeyB: theirNextNostrPublicKey
         )
         
-        let (theirRootKey, receivingChainKey) = try kdf(state.rootKey, conversationKey1, 2)
+        let (theirRootKey, receivingChainKey) = try DoubleRatchet.kdf(state.rootKey, conversationKey1, 2)
         state.receivingChainKey = receivingChainKey
         
         state.ourCurrentNostrKey = state.ourNextNostrKey
-        let ourNextSecretKey = generatePrivateKey()
-        state.ourNextNostrKey = FullKeypair(
-            pubkey: try! privkey_to_pubkey(privkey: Privkey(ourNextSecretKey))!,
-            privkey: Privkey(ourNextSecretKey)
-        )
+        state.ourNextNostrKey = generate_new_keypair()
         
         let conversationKey2 = try NIP44v2Encryption.conversationKey(
             privateKeyA: state.ourNextNostrKey.privkey,
             publicKeyB: theirNextNostrPublicKey
         )
         
-        let (rootKey, sendingChainKey) = try kdf(theirRootKey, conversationKey2, 2)
+        let (rootKey, sendingChainKey) = try DoubleRatchet.kdf(theirRootKey, conversationKey2, 2)
         state.rootKey = rootKey
         state.sendingChainKey = sendingChainKey
     }
@@ -178,18 +190,18 @@ class Session {
                     privateKeyA: currentKey.privkey,
                     publicKeyB: nostrSender
                 )
-                state.skippedKeys[nostrSender.hex()]?.headerKeys.append(currentSecret)
+                state.skippedKeys[nostrSender.hex()]?.headerKeys.append(currentSecret as! Data)
             }
             
             let nextSecret = try NIP44v2Encryption.conversationKey(
                 privateKeyA: state.ourNextNostrKey.privkey,
                 publicKeyB: nostrSender
             )
-            state.skippedKeys[nostrSender.hex()]?.headerKeys.append(nextSecret)
+            state.skippedKeys[nostrSender.hex()]?.headerKeys.append(nextSecret as! Data)
         }
         
         while state.receivingChainMessageNumber < until {
-            let (newReceivingChainKey, messageKey) = try kdf(state.receivingChainKey!, bytesToData([UInt8](repeating: 1, count: 1)), 2)
+            let (newReceivingChainKey, messageKey) = try DoubleRatchet.kdf(state.receivingChainKey!, DoubleRatchet.bytesToData([UInt8](repeating: 1, count: 1)), 2)
             state.receivingChainKey = newReceivingChainKey
             state.skippedKeys[nostrSender.hex()]?.messageKeys[state.receivingChainMessageNumber] = messageKey
             state.receivingChainMessageNumber += 1
@@ -218,6 +230,17 @@ class Session {
             if state.theirNextNostrPublicKey != header.nextPublicKey {
                 state.theirCurrentNostrPublicKey = state.theirNextNostrPublicKey
                 state.theirNextNostrPublicKey = header.nextPublicKey
+                nostrUnsubscribe?()
+                nostrUnsubscribe = nostrNextUnsubscribe
+                nostrNextUnsubscribe = nostrSubscribe(
+                    NostrFilter(
+                        kinds: [.double_ratchet_message],
+                        authors: [state.theirNextNostrPublicKey]
+                    ),
+                    { [weak self] event in
+                        try? self?.handleNostrEvent(event)
+                    }
+                )
             }
             
             if shouldRatchet {
@@ -232,43 +255,67 @@ class Session {
         }
         
         let text = try ratchetDecrypt(header: header, ciphertext: event.content, nostrSender: event.pubkey)
-        guard let innerEvent = try? JSONDecoder().decode(DoubleRatchet.Rumor.self, from: Data(text.utf8)) else {
+        guard let innerEvent = NostrEvent.owned_from_json(json: text) else {
             print("Invalid event received", text)
             return
         }
+
+        if !innerEvent.sig.data.isEmpty {
+            print("Error: Inner event has sig", innerEvent)
+            return
+        }
+
+        let rumor = DoubleRatchet.Rumor(
+            id: innerEvent.id.hex(),
+            content: innerEvent.content,
+            kind: innerEvent.kind,
+            created_at: innerEvent.created_at,
+            tags: innerEvent.tags.strings(),
+            pubkey: event.pubkey
+        )
         
-        guard innerEvent.id == getEventHash(innerEvent) else {
+        guard validate_event(ev: innerEvent) == .ok else {
+            print("Event validation failed", innerEvent)
+            return
+        }
+        
+        if innerEvent.id != calculate_event_id(
+            pubkey: innerEvent.pubkey,
+            created_at: innerEvent.created_at,
+            kind: innerEvent.kind,
+            tags: innerEvent.tags.strings(),
+            content: innerEvent.content
+        ) {
             print("Event hash does not match", innerEvent)
             return
         }
         
         subscriptions.values.forEach { callback in
-            callback(innerEvent, event)
+            callback(rumor, event)
         }
     }
     
-    private func sendEvent(content: String, kind: Int) throws -> (event: NostrEvent, innerEvent: DoubleRatchet.Rumor) {
+    private func sendEvent(rumor: DoubleRatchet.Rumor) throws -> (event: NostrEvent, innerEvent: DoubleRatchet.Rumor) {
         if state.theirNextNostrPublicKey.id.isEmpty || state.ourCurrentNostrKey == nil {
             throw DoubleRatchet.EncryptionError.notInitiator
         }
         
         let now = Date().timeIntervalSince1970
         
-        var rumor = DoubleRatchet.Rumor(
-            id: "",
-            content: content,
-            kind: kind,
-            created_at: Int(now),
-            tags: [],
-            pubkey: DoubleRatchet.Constants.DUMMY_PUBKEY
-        )
+        var rumor = rumor  // Create mutable copy
         
         // Add millisecond timestamp if not present
         if !rumor.tags.contains(where: { $0.first == "ms" }) {
             rumor.tags.append(["ms", String(Int(now * 1000))])
         }
         
-        rumor.id = getEventHash(rumor)
+        rumor.id = calculate_event_id(
+            pubkey: rumor.pubkey,
+            created_at: rumor.created_at,
+            kind: rumor.kind,
+            tags: rumor.tags,
+            content: rumor.content
+        ).hex()
         
         let (header, encryptedData) = try ratchetEncrypt(try DoubleRatchet.toString(try JSONEncoder().encode(rumor)))
         
@@ -282,13 +329,13 @@ class Session {
             conversationKey: sharedSecret
         )
         
-        let nostrEvent = try NostrEvent.create(
+        let nostrEvent = NostrEvent(
             content: encryptedData,
-            kind: DoubleRatchet.Constants.MESSAGE_EVENT_KIND,
+            keypair: Keypair(pubkey: privkey_to_pubkey(privkey: state.ourCurrentNostrKey!.privkey)!, privkey: state.ourCurrentNostrKey!.privkey),
+            kind: UInt32(DoubleRatchet.Constants.MESSAGE_EVENT_KIND),
             tags: [["header", encryptedHeader]],
-            created_at: Int(now),
-            privkey: state.ourCurrentNostrKey!.privkey
-        )
+            createdAt: UInt32(now)
+        )!
         
         return (event: nostrEvent, innerEvent: rumor)
     }
@@ -296,11 +343,42 @@ class Session {
     // MARK: - Private Methods - Nostr Subscription
     
     private func subscribeToNostrEvents() {
-        // Implementation would depend on your Nostr client architecture
-        // This would typically involve subscribing to events with:
-        // - authors matching theirNextNostrPublicKey
-        // - kind matching MESSAGE_EVENT_KIND
-        // And calling handleNostrEvent for each received event
+        guard nostrNextUnsubscribe == nil else { return }
+        
+        nostrNextUnsubscribe = nostrSubscribe(
+            NostrFilter(
+                kinds: [.double_ratchet_message],
+                authors: [state.theirNextNostrPublicKey]
+            ),
+            { [weak self] event in
+                try? self?.handleNostrEvent(event)
+            }
+        )
+        
+        if let currentKey = state.theirCurrentNostrPublicKey {
+            nostrUnsubscribe = nostrSubscribe(
+                NostrFilter(
+                    kinds: [.double_ratchet_message],
+                    authors: [currentKey]
+                ),
+                { [weak self] event in
+                    try? self?.handleNostrEvent(event)
+                }
+            )
+        }
+        
+        let skippedAuthors = Array(state.skippedKeys.keys).compactMap { Pubkey(hex: $0) }
+        if !skippedAuthors.isEmpty {
+            skippedSubscription = nostrSubscribe(
+                NostrFilter(
+                    kinds: [.double_ratchet_message],
+                    authors: skippedAuthors
+                ),
+                { [weak self] event in
+                    try? self?.handleNostrEvent(event)
+                }
+            )
+        }
     }
     
     // MARK: - Private Methods - Event Handling
@@ -352,65 +430,5 @@ class Session {
         case tooManySkippedMessages
         case headerDecryptionFailed
         case notInitiator
-    }
-}
-
-// These functions would need to be implemented based on your crypto implementation
-func generatePrivateKey() -> Data {
-    // Implementation needed
-    fatalError("Not implemented")
-}
-
-func getPublicKey(privateKey: Data) -> Pubkey {
-    // Implementation needed
-    fatalError("Not implemented")
-}
-
-func getEventHash(_ event: DoubleRatchet.Rumor) -> String {
-    // Implementation needed
-    fatalError("Not implemented")
-}
-
-// MARK: - Helper Functions
-
-private func bytesToData(_ bytes: [UInt8]) -> Data {
-    return Data(bytes)
-}
-
-private func bytesToData(_ bytes: ContiguousBytes) -> Data {
-    var data = Data()
-    bytes.withUnsafeBytes { buffer in
-        data.append(contentsOf: buffer)
-    }
-    return data
-}
-
-func kdf(_ input1: Data, _ input2: ContiguousBytes, _ numOutputs: Int) throws -> (Data, Data) {
-    var saltData = Data()
-    input2.withUnsafeBytes { buffer in
-        saltData.append(contentsOf: buffer)
-    }
-    
-    let prk = CryptoKit.HKDF<CryptoKit.SHA256>.extract(
-        inputKeyMaterial: SymmetricKey(data: input1),
-        salt: saltData
-    )
-    
-    var outputs: [Data] = []
-    for i in 1...numOutputs {
-        let info = Data([UInt8(i)])
-        let output = CryptoKit.HKDF<CryptoKit.SHA256>.expand(pseudoRandomKey: prk, info: info, outputByteCount: 32)
-        outputs.append(Data(output.withUnsafeBytes { Data($0) }))
-    }
-    
-    return (outputs[0], outputs[1])
-}
-
-// MARK: - NostrEvent Creation Helper
-
-extension NostrEvent {
-    static func create(content: String, kind: Int, tags: [[String]], created_at: Int, privkey: Data) throws -> NostrEvent {
-        // Implementation needed based on your NostrEvent creation logic
-        fatalError("Not implemented")
     }
 }

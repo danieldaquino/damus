@@ -52,11 +52,18 @@ enum DoubleRatchet {
     struct Rumor: Codable {
         var id: String
         let content: String
-        let kind: Int
-        let created_at: Int
+        let kind: UInt32
+        let created_at: UInt32
         var tags: [[String]]
         let pubkey: Pubkey
     }
+    
+    // MARK: - Nostr Hook Functions
+    
+    typealias NostrSubscribe = (NostrFilter, @escaping (NostrEvent) -> Void) -> Unsubscribe
+    typealias EncryptFunction = (String, Pubkey) async throws -> String
+    typealias DecryptFunction = (String, Pubkey) async throws -> String
+    typealias NostrPublish = (NostrEvent) async throws -> NostrEvent
     
     // MARK: - Type Aliases
     
@@ -66,10 +73,10 @@ enum DoubleRatchet {
     // MARK: - Constants
     
     enum Constants {
-        static let MESSAGE_EVENT_KIND = 1060
-        static let INVITE_EVENT_KIND = 30078
-        static let INVITE_RESPONSE_KIND = 1059
-        static let CHAT_MESSAGE_KIND = 14
+        static let MESSAGE_EVENT_KIND: UInt32 = NostrKind.double_ratchet_message.rawValue
+        static let INVITE_EVENT_KIND: UInt32 = NostrKind.application_specific_data.rawValue
+        static let INVITE_RESPONSE_KIND: UInt32 = NostrKind.gift_wrap.rawValue
+        static let CHAT_MESSAGE_KIND: UInt32 = NostrKind.chat_message.rawValue
         static let MAX_SKIP = 1000
         static let DUMMY_PUBKEY = Pubkey(hex: "0000000000000000000000000000000000000000000000000000000000000000")!
     }
