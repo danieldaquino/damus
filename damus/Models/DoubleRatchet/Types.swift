@@ -9,11 +9,6 @@ enum DoubleRatchet {
         let nextPublicKey: Pubkey
     }
     
-    struct KeyPair {
-        let publicKey: Pubkey
-        let privateKey: Data
-    }
-    
     struct SkippedKeys {
         var headerKeys: [Data]
         var messageKeys: [Int: Data]
@@ -30,10 +25,10 @@ enum DoubleRatchet {
         var theirNextNostrPublicKey: Pubkey
         
         /// Our current Nostr keypair used for this session
-        var ourCurrentNostrKey: KeyPair?
+        var ourCurrentNostrKey: FullKeypair?
         
         /// Our next Nostr keypair, used when ratcheting forward
-        var ourNextNostrKey: KeyPair
+        var ourNextNostrKey: FullKeypair
         
         /// Key for decrypting incoming messages in current chain
         var receivingChainKey: Data?

@@ -13,7 +13,7 @@ import CryptoKit
 /// Very similar to Signal's "Double Ratchet with header encryption"
 /// https://signal.org/docs/specifications/doubleratchet/
 class Session {
-    private var state: DoubleRatchet.SessionState
+    internal var state: DoubleRatchet.SessionState
     private var subscriptions: [Int: DoubleRatchet.EventCallback] = [:]
     private var currentSubscriptionId = 0
     var name: String
@@ -25,42 +25,44 @@ class Session {
     
     // MARK: - Double Ratchet Initialization
     
-    init(state: DoubleRatchet.SessionState) {
+    init(state: DoubleRatchet.SessionState, name: String) {
         self.state = state
-        self.name = String(Int.random(in: 0...9999), radix: 36)
+        self.name = name
     }
     
     static func initialize(
         theirEphemeralNostrPublicKey: Pubkey,
-        ourEphemeralNostrPrivateKey: Data,
+        ourEphemeralNostrPrivateKey: Privkey,
         isInitiator: Bool,
         sharedSecret: Data,
         name: String? = nil
     ) throws -> Session {
         let ourNextPrivateKey = generatePrivateKey()
-        let (rootKey, sendingChainKey) = try kdf(sharedSecret, bytesToData(try NIP44v2Encryption.conversationKey(privateKeyA: Privkey(ourNextPrivateKey), publicKeyB: theirEphemeralNostrPublicKey)), 2)
+        let ourNextPubkey = try! privkey_to_pubkey(privkey: Privkey(ourNextPrivateKey))!
         
-        var ourCurrentNostrKey: DoubleRatchet.KeyPair?
-        var ourNextNostrKey: DoubleRatchet.KeyPair
+        let conversationKey = try NIP44v2Encryption.conversationKey(
+            privateKeyA: Privkey(ourNextPrivateKey),
+            publicKeyB: theirEphemeralNostrPublicKey
+        )
+        
+        let (rootKey, sendingChainKey) = try kdf(sharedSecret, conversationKey, 2)
+        
+        var ourCurrentNostrKey: FullKeypair?
+        let ourNextNostrKey: FullKeypair
         
         if isInitiator {
-            ourCurrentNostrKey = DoubleRatchet.KeyPair(
-                publicKey: getPublicKey(privateKey: ourEphemeralNostrPrivateKey),
-                privateKey: ourEphemeralNostrPrivateKey
+            ourCurrentNostrKey = FullKeypair(
+                pubkey: try! privkey_to_pubkey(privkey: ourEphemeralNostrPrivateKey)!,
+                privkey: ourEphemeralNostrPrivateKey
             )
-            ourNextNostrKey = DoubleRatchet.KeyPair(
-                publicKey: getPublicKey(privateKey: ourNextPrivateKey),
-                privateKey: ourNextPrivateKey
-            )
+            ourNextNostrKey = FullKeypair(pubkey: ourNextPubkey, privkey: Privkey(ourNextPrivateKey))
         } else {
-            ourNextNostrKey = DoubleRatchet.KeyPair(
-                publicKey: getPublicKey(privateKey: ourEphemeralNostrPrivateKey),
-                privateKey: ourEphemeralNostrPrivateKey
-            )
+            ourNextNostrKey = FullKeypair(pubkey: ourNextPubkey, privkey: Privkey(ourNextPrivateKey))
         }
         
         let state = DoubleRatchet.SessionState(
             rootKey: isInitiator ? rootKey : sharedSecret,
+            theirCurrentNostrPublicKey: nil,
             theirNextNostrPublicKey: theirEphemeralNostrPublicKey,
             ourCurrentNostrKey: ourCurrentNostrKey,
             ourNextNostrKey: ourNextNostrKey,
@@ -72,11 +74,7 @@ class Session {
             skippedKeys: [:]
         )
         
-        let session = Session(state: state)
-        if let name = name {
-            session.name = name
-        }
-        return session
+        return Session(state: state, name: name ?? String(Int.random(in: 0...9999), radix: 36))
     }
     
     // MARK: - Public Methods
@@ -108,7 +106,7 @@ class Session {
         let header = DoubleRatchet.Header(
             number: state.sendingChainMessageNumber,
             previousChainLength: state.previousSendingChainMessageCount,
-            nextPublicKey: state.ourNextNostrKey.publicKey
+            nextPublicKey: state.ourNextNostrKey.pubkey
         )
         state.sendingChainMessageNumber += 1
         
@@ -140,25 +138,26 @@ class Session {
         state.receivingChainMessageNumber = 0
         state.theirNextNostrPublicKey = theirNextNostrPublicKey
         
-        let conversationKey1 = bytesToData(try NIP44v2Encryption.conversationKey(
-            privateKeyA: Privkey(state.ourNextNostrKey.privateKey),
+        let conversationKey1 = try NIP44v2Encryption.conversationKey(
+            privateKeyA: state.ourNextNostrKey.privkey,
             publicKeyB: theirNextNostrPublicKey
-        ))
-        let (theirRootKey, receivingChainKey) = try kdf(state.rootKey, conversationKey1, 2)
+        )
         
+        let (theirRootKey, receivingChainKey) = try kdf(state.rootKey, conversationKey1, 2)
         state.receivingChainKey = receivingChainKey
         
         state.ourCurrentNostrKey = state.ourNextNostrKey
         let ourNextSecretKey = generatePrivateKey()
-        state.ourNextNostrKey = DoubleRatchet.KeyPair(
-            publicKey: getPublicKey(privateKey: ourNextSecretKey),
-            privateKey: ourNextSecretKey
+        state.ourNextNostrKey = FullKeypair(
+            pubkey: try! privkey_to_pubkey(privkey: Privkey(ourNextSecretKey))!,
+            privkey: Privkey(ourNextSecretKey)
         )
         
-        let conversationKey2 = bytesToData(try NIP44v2Encryption.conversationKey(
-            privateKeyA: Privkey(state.ourNextNostrKey.privateKey),
+        let conversationKey2 = try NIP44v2Encryption.conversationKey(
+            privateKeyA: state.ourNextNostrKey.privkey,
             publicKeyB: theirNextNostrPublicKey
-        ))
+        )
+        
         let (rootKey, sendingChainKey) = try kdf(theirRootKey, conversationKey2, 2)
         state.rootKey = rootKey
         state.sendingChainKey = sendingChainKey
@@ -175,17 +174,17 @@ class Session {
             state.skippedKeys[nostrSender.hex()] = DoubleRatchet.SkippedKeys(headerKeys: [], messageKeys: [:])
             
             if let currentKey = state.ourCurrentNostrKey {
-                let currentSecret = bytesToData(try NIP44v2Encryption.conversationKey(
-                    privateKeyA: Privkey(currentKey.privateKey),
+                let currentSecret = try NIP44v2Encryption.conversationKey(
+                    privateKeyA: currentKey.privkey,
                     publicKeyB: nostrSender
-                ))
+                )
                 state.skippedKeys[nostrSender.hex()]?.headerKeys.append(currentSecret)
             }
             
-            let nextSecret = bytesToData(try NIP44v2Encryption.conversationKey(
-                privateKeyA: Privkey(state.ourNextNostrKey.privateKey),
+            let nextSecret = try NIP44v2Encryption.conversationKey(
+                privateKeyA: state.ourNextNostrKey.privkey,
                 publicKeyB: nostrSender
-            ))
+            )
             state.skippedKeys[nostrSender.hex()]?.headerKeys.append(nextSecret)
         }
         
@@ -274,7 +273,7 @@ class Session {
         let (header, encryptedData) = try ratchetEncrypt(try DoubleRatchet.toString(try JSONEncoder().encode(rumor)))
         
         let sharedSecret = try NIP44v2Encryption.conversationKey(
-            privateKeyA: Privkey(state.ourCurrentNostrKey!.privateKey),
+            privateKeyA: state.ourCurrentNostrKey!.privkey,
             publicKeyB: state.theirNextNostrPublicKey
         )
         
@@ -288,7 +287,7 @@ class Session {
             kind: DoubleRatchet.Constants.MESSAGE_EVENT_KIND,
             tags: [["header", encryptedHeader]],
             created_at: Int(now),
-            privkey: state.ourCurrentNostrKey!.privateKey
+            privkey: state.ourCurrentNostrKey!.privkey
         )
         
         return (event: nostrEvent, innerEvent: rumor)
@@ -311,7 +310,7 @@ class Session {
         
         if let currentKey = state.ourCurrentNostrKey {
             let currentSecret = try NIP44v2Encryption.conversationKey(
-                privateKeyA: Privkey(currentKey.privateKey),
+                privateKeyA: currentKey.privkey,
                 publicKeyB: event.pubkey
             )
             do {
@@ -323,7 +322,7 @@ class Session {
         }
         
         let nextSecret = try NIP44v2Encryption.conversationKey(
-            privateKeyA: Privkey(state.ourNextNostrKey.privateKey),
+            privateKeyA: state.ourNextNostrKey.privkey,
             publicKeyB: event.pubkey
         )
         do {
