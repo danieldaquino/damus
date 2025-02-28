@@ -451,6 +451,7 @@ class Session {
                 }
             }
         }
+        print("\(name) failed to decrypt with skipped keys")
         
         throw DoubleRatchet.EncryptionError.headerDecryptionFailed
     }
