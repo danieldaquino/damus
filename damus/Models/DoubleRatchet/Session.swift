@@ -43,35 +43,54 @@ class Session {
         name: String? = nil
     ) throws -> Session {
         print("Initializing session - isInitiator:", isInitiator)
-        let ourNextKeypair = generate_new_keypair()
-        
-        let conversationKey = try NIP44v2Encryption.conversationKey(
-            privateKeyA: ourEphemeralNostrPrivateKey,
-            publicKeyB: theirEphemeralNostrPublicKey
-        )
-        print("Generated conversation key")
-        
-        let (rootKey, sendingChainKey) = try DoubleRatchet.kdf(sharedSecret, conversationKey, 2)
-        print("Generated root and sending chain keys")
-        
+
+        var ourNextKeypair: FullKeypair
+        var rootKey: Data
+        var sendingChainKey: Data?
         var ourCurrentNostrKey: FullKeypair?
         
         if isInitiator {
+            ourNextKeypair = generate_new_keypair()
+            let conversationKey = try NIP44v2Encryption.conversationKey(
+                privateKeyA: ourNextKeypair.privkey,
+                publicKeyB: theirEphemeralNostrPublicKey
+            )
+            
+            // Convert ContiguousBytes to Data for logging
+            var conversationKeyData = Data()
+            conversationKey.withUnsafeBytes { bytes in
+                conversationKeyData.append(contentsOf: bytes)
+            }
+            print("Generated conversation key: \(conversationKeyData.hexString.prefix(16))")
+            
+            (rootKey, sendingChainKey) = try DoubleRatchet.kdf(sharedSecret, conversationKeyData, 2)
+            print("Generated root key: \(rootKey.hexString.prefix(16)) and sending chain key: \(sendingChainKey?.hexString.prefix(16) ?? "nil")")
+
             ourCurrentNostrKey = FullKeypair(
                 pubkey: try! privkey_to_pubkey(privkey: ourEphemeralNostrPrivateKey)!,
                 privkey: ourEphemeralNostrPrivateKey
             )
             print("Set initiator current key:", ourCurrentNostrKey?.pubkey.hex().prefix(8) ?? "nil")
+        } else {
+            ourNextKeypair = FullKeypair(
+                pubkey: try! privkey_to_pubkey(privkey: ourEphemeralNostrPrivateKey)!,
+                privkey: ourEphemeralNostrPrivateKey
+            )
+            print("Set responder next key:", ourNextKeypair.pubkey.hex().prefix(8))
+
+            rootKey = sharedSecret
+            sendingChainKey = nil
+            ourCurrentNostrKey = nil
         }
         
         let state = DoubleRatchet.SessionState(
-            rootKey: isInitiator ? rootKey : sharedSecret,
+            rootKey: rootKey,
             theirCurrentNostrPublicKey: nil,
             theirNextNostrPublicKey: theirEphemeralNostrPublicKey,
             ourCurrentNostrKey: ourCurrentNostrKey,
             ourNextNostrKey: ourNextKeypair,
             receivingChainKey: nil,
-            sendingChainKey: isInitiator ? sendingChainKey : nil,
+            sendingChainKey: sendingChainKey,
             sendingChainMessageNumber: 0,
             receivingChainMessageNumber: 0,
             previousSendingChainMessageCount: 0,
@@ -122,8 +141,16 @@ class Session {
     // MARK: - Private Methods - Ratchet Operations
     
     private func ratchetEncrypt(_ plaintext: String) throws -> (DoubleRatchet.Header, String) {
+
+        print("\(name) ratchetEncrypt - starting with rootKey: \(state.rootKey.hexString.prefix(16))")
+        print("\(name) ratchetEncrypt - current sendingChainKey: \(state.sendingChainKey?.hexString.prefix(16) ?? "nil")")
+        print("\(name) ratchetEncrypt - current rootKey: \(state.rootKey.hexString.prefix(16))")
+
         let (newSendingChainKey, messageKey) = try DoubleRatchet.kdf(state.sendingChainKey!, DoubleRatchet.bytesToData([UInt8](repeating: 1, count: 1)), 2)
         state.sendingChainKey = newSendingChainKey
+
+        print("\(name) ratchetEncrypt - new sendingChainKey: \(state.sendingChainKey!.hexString.prefix(16))")
+        print("\(name) ratchetEncrypt - messageKey: \(messageKey.hexString.prefix(16))")
         
         let header = DoubleRatchet.Header(
             number: state.sendingChainMessageNumber,
@@ -154,29 +181,52 @@ class Session {
         }
     }
     
-    private func ratchetStep(theirNextNostrPublicKey: Pubkey) throws {
+    private func ratchetStep() throws {
+        print("\(name) ratchetStep - starting with theirNextNostrPublicKey: \(state.theirNextNostrPublicKey.hex().prefix(8))")
+        print("\(name) ratchetStep - current rootKey: \(state.rootKey.hexString.prefix(16))")
+        
         state.previousSendingChainMessageCount = state.sendingChainMessageNumber
         state.sendingChainMessageNumber = 0
         state.receivingChainMessageNumber = 0
-        state.theirNextNostrPublicKey = theirNextNostrPublicKey
-        
+
         let conversationKey1 = try NIP44v2Encryption.conversationKey(
             privateKeyA: state.ourNextNostrKey.privkey,
-            publicKeyB: theirNextNostrPublicKey
+            publicKeyB: state.theirNextNostrPublicKey
         )
         
-        let (theirRootKey, receivingChainKey) = try DoubleRatchet.kdf(state.rootKey, conversationKey1, 2)
+        // Convert ContiguousBytes to Data
+        var conversationKey1Data = Data()
+        conversationKey1.withUnsafeBytes { bytes in
+            conversationKey1Data.append(contentsOf: bytes)
+        }
+        print("\(name) ratchetStep - conversationKey1: \(conversationKey1Data.hexString.prefix(16))")
+        
+        let (theirRootKey, receivingChainKey) = try DoubleRatchet.kdf(state.rootKey, conversationKey1Data, 2)
+        print("\(name) ratchetStep - theirRootKey: \(theirRootKey.hexString.prefix(16))")
+        print("\(name) ratchetStep - receivingChainKey: \(receivingChainKey.hexString.prefix(16))")
+        
         state.receivingChainKey = receivingChainKey
         
         state.ourCurrentNostrKey = state.ourNextNostrKey
         state.ourNextNostrKey = generate_new_keypair()
+        print("\(name) ratchetStep - new ourNextNostrKey: \(state.ourNextNostrKey.pubkey.hex().prefix(8))")
         
         let conversationKey2 = try NIP44v2Encryption.conversationKey(
             privateKeyA: state.ourNextNostrKey.privkey,
-            publicKeyB: theirNextNostrPublicKey
+            publicKeyB: state.theirNextNostrPublicKey
         )
         
-        let (rootKey, sendingChainKey) = try DoubleRatchet.kdf(theirRootKey, conversationKey2, 2)
+        // Convert ContiguousBytes to Data
+        var conversationKey2Data = Data()
+        conversationKey2.withUnsafeBytes { bytes in
+            conversationKey2Data.append(contentsOf: bytes)
+        }
+        print("\(name) ratchetStep - conversationKey2: \(conversationKey2Data.hexString.prefix(16))")
+        
+        let (rootKey, sendingChainKey) = try DoubleRatchet.kdf(theirRootKey, conversationKey2Data, 2)
+        print("\(name) ratchetStep - new rootKey: \(rootKey.hexString.prefix(16))")
+        print("\(name) ratchetStep - sendingChainKey: \(sendingChainKey.hexString.prefix(16))")
+        
         state.rootKey = rootKey
         state.sendingChainKey = sendingChainKey
     }
@@ -184,6 +234,10 @@ class Session {
     // MARK: - Private Methods - Message Key Management
     
     private func skipMessageKeys(until: Int, nostrSender: Pubkey) throws {
+        if until <= state.receivingChainMessageNumber {
+            return
+        }
+
         if state.receivingChainMessageNumber + DoubleRatchet.Constants.MAX_SKIP < until {
             throw DoubleRatchet.EncryptionError.tooManySkippedMessages
         }
@@ -196,14 +250,22 @@ class Session {
                     privateKeyA: currentKey.privkey,
                     publicKeyB: nostrSender
                 )
-                state.skippedKeys[nostrSender.hex()]?.headerKeys.append(currentSecret as! Data)
+                if let dataSecret = currentSecret as? Data {
+                    state.skippedKeys[nostrSender.hex()]?.headerKeys.append(dataSecret)
+                } else {
+                    print("\(name) Warning: Could not convert currentSecret to Data")
+                }
             }
             
             let nextSecret = try NIP44v2Encryption.conversationKey(
                 privateKeyA: state.ourNextNostrKey.privkey,
                 publicKeyB: nostrSender
             )
-            state.skippedKeys[nostrSender.hex()]?.headerKeys.append(nextSecret as! Data)
+            if let dataSecret = nextSecret as? Data {
+                state.skippedKeys[nostrSender.hex()]?.headerKeys.append(dataSecret)
+            } else {
+                print("\(name) Warning: Could not convert nextSecret to Data")
+            }
         }
         
         while state.receivingChainMessageNumber < until {
@@ -255,7 +317,7 @@ class Session {
             if shouldRatchet {
                 print("\(name) performing ratchet step")
                 try skipMessageKeys(until: header.previousChainLength, nostrSender: event.pubkey)
-                try ratchetStep(theirNextNostrPublicKey: header.nextPublicKey)
+                try ratchetStep()
             }
         } else {
             if state.skippedKeys[event.pubkey.hex()]?.messageKeys[header.number] == nil {
@@ -462,5 +524,12 @@ class Session {
         case tooManySkippedMessages
         case headerDecryptionFailed
         case notInitiator
+    }
+}
+
+// Add this extension to help with debugging
+extension Data {
+    var hexString: String {
+        return self.map { String(format: "%02hhx", $0) }.joined()
     }
 }

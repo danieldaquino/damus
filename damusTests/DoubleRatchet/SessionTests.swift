@@ -19,7 +19,7 @@ final class SessionTests: XCTestCase {
             theirEphemeralNostrPublicKey: bobKeypair.pubkey,
             ourEphemeralNostrPrivateKey: Privkey(aliceKeypair.privkey.id),
             isInitiator: true,
-            sharedSecret: Data(),
+            sharedSecret: Data("testSharedSecret".utf8),
             nostrSubscribe: mockSubscribe,
             name: "alice"
         )
@@ -27,6 +27,19 @@ final class SessionTests: XCTestCase {
         XCTAssertEqual(alice.state.theirNextNostrPublicKey, bobKeypair.pubkey)
         XCTAssertEqual(alice.state.ourCurrentNostrKey?.pubkey, aliceKeypair.pubkey)
         XCTAssertEqual(alice.state.ourCurrentNostrKey?.pubkey.hex().count, 64)
+
+        let bob = try Session.initialize(
+            theirEphemeralNostrPublicKey: aliceKeypair.pubkey,
+            ourEphemeralNostrPrivateKey: Privkey(bobKeypair.privkey.id),
+            isInitiator: false,
+            sharedSecret: Data("testSharedSecret".utf8),
+            nostrSubscribe: mockSubscribe,
+            name: "bob"
+        )
+
+        XCTAssertEqual(bob.state.theirNextNostrPublicKey, aliceKeypair.pubkey)
+        XCTAssertEqual(bob.state.ourCurrentNostrKey, nil)
+        XCTAssertEqual(bob.state.ourNextNostrKey.pubkey, bobKeypair.pubkey)
     }
     
     func testCreateEventWithCorrectProperties() throws {
@@ -35,17 +48,17 @@ final class SessionTests: XCTestCase {
         
         let mockSubscribe = createMockSubscribe()
         
-        let session = try Session.initialize(
+        let aliceSession = try Session.initialize(
             theirEphemeralNostrPublicKey: bobKeypair.pubkey,
             ourEphemeralNostrPrivateKey: Privkey(aliceKeypair.privkey.id),
             isInitiator: true,
-            sharedSecret: Data(),
+            sharedSecret: Data("testSharedSecret".utf8),
             nostrSubscribe: mockSubscribe,
             name: "alice"
         )
-        
+
         let testData = "Hello, world!"
-        let (event, _) = try session.sendText(testData)
+        let (event, _) = try aliceSession.sendText(testData)
         
         XCTAssertNotNil(event)
         XCTAssertEqual(event.kind, DoubleRatchet.Constants.MESSAGE_EVENT_KIND)
@@ -54,6 +67,7 @@ final class SessionTests: XCTestCase {
         XCTAssertNotNil(event.content)
         XCTAssertGreaterThan(event.created_at, 0)
         XCTAssertEqual(event.pubkey.hex().count, 64)
+        XCTAssertNotEqual(event.pubkey.hex(), aliceKeypair.pubkey.hex())
         XCTAssertEqual(event.id.hex().count, 64)
         XCTAssertEqual(event.sig.data.count, 64)
     }
@@ -86,7 +100,7 @@ final class SessionTests: XCTestCase {
             theirEphemeralNostrPublicKey: bobKeypair.pubkey,
             ourEphemeralNostrPrivateKey: Privkey(aliceKeypair.privkey.id),
             isInitiator: true,
-            sharedSecret: Data(),
+            sharedSecret: Data("testSharedSecret".utf8),
             nostrSubscribe: mockSubscribe,
             name: "alice"
         )
@@ -95,7 +109,7 @@ final class SessionTests: XCTestCase {
             theirEphemeralNostrPublicKey: aliceKeypair.pubkey,
             ourEphemeralNostrPrivateKey: Privkey(bobKeypair.privkey.id),
             isInitiator: false,
-            sharedSecret: Data(),
+            sharedSecret: Data("testSharedSecret".utf8),
             nostrSubscribe: mockSubscribe,
             name: "bob"
         )
@@ -143,7 +157,7 @@ final class SessionTests: XCTestCase {
             theirEphemeralNostrPublicKey: bobKeypair.pubkey,
             ourEphemeralNostrPrivateKey: Privkey(aliceKeypair.privkey.id),
             isInitiator: true,
-            sharedSecret: Data(),
+            sharedSecret: Data("testSharedSecret".utf8),
             nostrSubscribe: mockSubscribe,
             name: "alice"
         )
@@ -152,7 +166,7 @@ final class SessionTests: XCTestCase {
             theirEphemeralNostrPublicKey: aliceKeypair.pubkey,
             ourEphemeralNostrPrivateKey: Privkey(bobKeypair.privkey.id),
             isInitiator: false,
-            sharedSecret: Data(),
+            sharedSecret: Data("testSharedSecret".utf8),
             nostrSubscribe: mockSubscribe,
             name: "bob"
         )
@@ -199,7 +213,7 @@ final class SessionTests: XCTestCase {
             theirEphemeralNostrPublicKey: bobKeypair.pubkey,
             ourEphemeralNostrPrivateKey: Privkey(aliceKeypair.privkey.id),
             isInitiator: true,
-            sharedSecret: Data(),
+            sharedSecret: Data("testSharedSecret".utf8),
             nostrSubscribe: mockSubscribe,
             name: "alice"
         )
@@ -208,7 +222,7 @@ final class SessionTests: XCTestCase {
             theirEphemeralNostrPublicKey: aliceKeypair.pubkey,
             ourEphemeralNostrPrivateKey: Privkey(bobKeypair.privkey.id),
             isInitiator: false,
-            sharedSecret: Data(),
+            sharedSecret: Data("testSharedSecret".utf8),
             nostrSubscribe: mockSubscribe,
             name: "bob"
         )
@@ -254,7 +268,7 @@ final class SessionTests: XCTestCase {
             theirEphemeralNostrPublicKey: bobKeypair.pubkey,
             ourEphemeralNostrPrivateKey: Privkey(aliceKeypair.privkey.id),
             isInitiator: true,
-            sharedSecret: Data(),
+            sharedSecret: Data("testSharedSecret".utf8),
             nostrSubscribe: mockSubscribe,
             name: "alice"
         )
@@ -263,7 +277,7 @@ final class SessionTests: XCTestCase {
             theirEphemeralNostrPublicKey: aliceKeypair.pubkey,
             ourEphemeralNostrPrivateKey: Privkey(bobKeypair.privkey.id),
             isInitiator: false,
-            sharedSecret: Data(),
+            sharedSecret: Data("testSharedSecret".utf8),
             nostrSubscribe: mockSubscribe,
             name: "bob"
         )
