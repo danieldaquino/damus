@@ -1,14 +1,17 @@
 import SwiftUI
+import CodeScanner
 
 struct InvitesView: View {
     let damus_state: DamusState
     @State private var inviteLink: String = ""
-    @State private var invites: [Invite] = []
+    @State private var publicInvite: Invite?
+    @State private var privateInvite: Invite?
     @State private var isCreatingInvite: Bool = false
     @State private var newInviteLabel: String = ""
     @State private var newInviteMaxUses: String = ""
     @State private var showingQRCode: Bool = false
     @State private var selectedInviteURL: String = ""
+    @State private var showingQRScanner = false
     
     var body: some View {
         ScrollView {
@@ -26,14 +29,19 @@ struct InvitesView: View {
                     HStack {
                         TextField("Paste invite link", text: $inviteLink)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
                         
                         Button(action: {
-                            // TODO: Implement QR scan
+                            showingQRScanner = true
                         }) {
                             Image(systemName: "qrcode.viewfinder")
                                 .frame(width: 44, height: 44)
                         }
                         .buttonStyle(.bordered)
+                        .sheet(isPresented: $showingQRScanner) {
+                            InviteQRScannerView(inviteLink: $inviteLink, isPresented: $showingQRScanner)
+                        }
                     }
                 }
                 .padding(.horizontal)
@@ -44,35 +52,29 @@ struct InvitesView: View {
                         .font(.title2)
                         .fontWeight(.semibold)
                     
-                    Button(action: {
-                        createNewInvite(isPrivate: false)
-                    }) {
-                        HStack {
-                            Image(systemName: "person.badge.plus")
-                            Text("Create New Invite")
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.accentColor)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                    }
-                    
                     // Display existing invites
-                    ForEach(invites.indices, id: \.self) { index in
-                        let invite = invites[index]
+                    if let publicInvite = publicInvite {
                         InviteCardView(
-                            invite: invite,
+                            invite: publicInvite,
                             onShowQR: {
-                                selectedInviteURL = invite.getUrl()
+                                selectedInviteURL = publicInvite.getUrl()
                                 showingQRCode = true
                             },
                             onCopy: {
-                                UIPasteboard.general.string = invite.getUrl()
+                                UIPasteboard.general.string = publicInvite.getUrl()
+                            }
+                        )
+                    }
+                    
+                    if let privateInvite = privateInvite {
+                        InviteCardView(
+                            invite: privateInvite,
+                            onShowQR: {
+                                selectedInviteURL = privateInvite.getUrl()
+                                showingQRCode = true
                             },
-                            onDelete: {
-                                invites.remove(at: index)
-                                // TODO: Implement proper deletion from storage
+                            onCopy: {
+                                UIPasteboard.general.string = privateInvite.getUrl()
                             }
                         )
                     }
@@ -83,16 +85,6 @@ struct InvitesView: View {
         .onAppear {
             loadInvites()
         }
-        .sheet(isPresented: $isCreatingInvite) {
-            CreateInviteView(
-                isPresented: $isCreatingInvite,
-                label: $newInviteLabel,
-                maxUses: $newInviteMaxUses,
-                onCreate: { isPrivate in
-                    createNewInvite(isPrivate: isPrivate)
-                }
-            )
-        }
         .sheet(isPresented: $showingQRCode) {
             InviteQRCodeView(url: selectedInviteURL)
         }
@@ -100,45 +92,14 @@ struct InvitesView: View {
     
     private func loadInvites() {
         // TODO: Load invites from storage
-        // For now, we'll just create a sample invite for testing
+        // For now, we'll just create sample invites for testing
         do {
             if let keypair = damus_state.keypair.to_full() {
-                let publicInvite = try Invite.createNew(inviter: keypair.pubkey, label: "Public Invite")
-                invites.append(publicInvite)
-                
-                let privateInvite = try Invite.createNew(inviter: keypair.pubkey, label: "Private Invite", maxUses: 1)
-                invites.append(privateInvite)
+                publicInvite = try Invite.createNew(inviter: keypair.pubkey, label: "Public Invite")
+                privateInvite = try Invite.createNew(inviter: keypair.pubkey, label: "Private Invite", maxUses: 1)
             }
         } catch {
             print("Error creating sample invites: \(error)")
-        }
-    }
-    
-    private func createNewInvite(isPrivate: Bool) {
-        do {
-            if let keypair = damus_state.keypair.to_full() {
-                let maxUses = isPrivate ? Int(newInviteMaxUses) : nil
-                let invite = try Invite.createNew(
-                    inviter: keypair.pubkey,
-                    label: newInviteLabel.isEmpty ? (isPrivate ? "Private Invite" : "Public Invite") : newInviteLabel,
-                    maxUses: maxUses
-                )
-                
-                // Create and publish event for public invites
-                if !isPrivate {
-                    let event = invite.getEvent(keypair: keypair)
-                    damus_state.pool.send(.event(event))
-                }
-                
-                invites.append(invite)
-                
-                // Reset form fields
-                newInviteLabel = ""
-                newInviteMaxUses = ""
-                isCreatingInvite = false
-            }
-        } catch {
-            print("Error creating invite: \(error)")
         }
     }
 }
@@ -147,7 +108,6 @@ struct InviteCardView: View {
     let invite: Invite
     let onShowQR: () -> Void
     let onCopy: () -> Void
-    let onDelete: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -172,12 +132,6 @@ struct InviteCardView: View {
                     Text("Copy")
                 }
                 .buttonStyle(.bordered)
-                
-                Button(action: onDelete) {
-                    Text("Delete")
-                }
-                .buttonStyle(.bordered)
-                .tint(.red)
             }
         }
         .padding()
@@ -226,13 +180,20 @@ struct InviteQRCodeView: View {
     
     var body: some View {
         VStack {
-            if let qrCode = generateQRCode(from: url) {
-                Image(uiImage: qrCode)
-                    .interpolation(.none)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 200, height: 200)
-            }
+            // Debug text to see the exact URL
+            Text("URL: \"\(url)\"")
+                .font(.system(.caption, design: .monospaced))
+                .padding()
+                .background(Color.gray.opacity(0.2))
+                .cornerRadius(5)
+            
+            Image(uiImage: generateQRCode(from: url))
+                .interpolation(.none)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 200, height: 200)
+                .background(Color.white)
+                .cornerRadius(10)
             
             Text(url)
                 .font(.caption)
@@ -247,20 +208,108 @@ struct InviteQRCodeView: View {
         .padding()
     }
     
-    private func generateQRCode(from string: String) -> UIImage? {
-        let data = string.data(using: .utf8)
-        if let filter = CIFilter(name: "CIQRCodeGenerator") {
-            filter.setValue(data, forKey: "inputMessage")
-            filter.setValue("H", forKey: "inputCorrectionLevel")
-            if let outputImage = filter.outputImage {
-                let transform = CGAffineTransform(scaleX: 10, y: 10)
-                let scaledImage = outputImage.transformed(by: transform)
-                let context = CIContext()
-                if let cgImage = context.createCGImage(scaledImage, from: scaledImage.extent) {
-                    return UIImage(cgImage: cgImage)
+    private func generateQRCode(from string: String) -> UIImage {
+        // Print the string for debugging
+        print("Generating QR code for: \"\(string)\"")
+        
+        // Ensure we have valid data
+        guard let data = string.data(using: .utf8) else {
+            print("Failed to encode string to UTF-8 data")
+            return UIImage(systemName: "xmark.circle") ?? UIImage()
+        }
+        
+        // Create the QR code filter
+        let qrFilter = CIFilter(name: "CIQRCodeGenerator")
+        qrFilter?.setValue(data, forKey: "inputMessage")
+        
+        // Scale the image
+        guard let qrImage = qrFilter?.outputImage else {
+            print("Failed to generate QR image")
+            return UIImage(systemName: "xmark.circle") ?? UIImage()
+        }
+        
+        // Scale the image
+        let transform = CGAffineTransform(scaleX: 10, y: 10)
+        let scaledQrImage = qrImage.transformed(by: transform)
+        
+        // Convert to UIImage
+        let context = CIContext()
+        guard let cgImage = context.createCGImage(scaledQrImage, from: scaledQrImage.extent) else {
+            print("Failed to create CGImage")
+            return UIImage(systemName: "xmark.circle") ?? UIImage()
+        }
+        
+        print("Successfully generated QR code")
+        return UIImage(cgImage: cgImage)
+    }
+}
+
+struct InviteQRScannerView: View {
+    @Binding var inviteLink: String
+    @Binding var isPresented: Bool
+    
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        NavigationView {
+            ZStack(alignment: .center) {
+                DamusGradient()
+                
+                VStack {
+                    Text("Scan Invite QR Code")
+                        .font(.system(size: 24, weight: .heavy))
+                        .foregroundColor(.white)
+                        .padding(.top, 50)
+                    
+                    Spacer()
+                    
+                    CodeScannerView(codeTypes: [.qr], scanMode: .continuous, scanInterval: 1, showViewfinder: true, simulatedData: "https://damus.io/invite/example", shouldVibrateOnSuccess: true) { result in
+                        handleScan(result)
+                    }
+                    .scaledToFit()
+                    .frame(maxWidth: 300, maxHeight: 300)
+                    .cornerRadius(10)
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(DamusColors.white, lineWidth: 5.0).scaledToFit())
+                    .shadow(radius: 10)
+                    
+                    Spacer()
+                    
+                    Text("Point your camera to an invite QR code")
+                        .foregroundColor(.white)
+                        .padding()
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        HStack {
+                            Text("Cancel")
+                                .fontWeight(.semibold)
+                        }
+                        .frame(minWidth: 300, maxWidth: .infinity, maxHeight: 12, alignment: .center)
+                    }
+                    .buttonStyle(GradientButtonStyle())
+                    .padding(20)
                 }
             }
+            .navigationBarHidden(true)
         }
-        return nil
+    }
+    
+    func handleScan(_ result: Result<ScanResult, ScanError>) {
+        switch result {
+        case .success(let result):
+            let scannedCode = result.string
+            
+            // Check if the scanned code is a valid invite link
+            if scannedCode.contains("damus.io/invite") || scannedCode.contains("relay.damus.io") {
+                inviteLink = scannedCode
+                isPresented = false
+            }
+            
+        case .failure(let error):
+            print("Scanning failed: \(error.localizedDescription)")
+        }
     }
 } 
