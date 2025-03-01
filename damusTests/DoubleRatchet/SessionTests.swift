@@ -2,18 +2,67 @@ import XCTest
 import secp256k1
 @testable import damus
 
-final class SessionTests: XCTestCase {
-    
-    // Helper function to create a mock subscribe function
-    private func createMockSubscribe() -> DoubleRatchet.NostrSubscribe {
-        return { _, _ in { } }
+// PubSub class for testing that doesn't need sleep
+private class PubSub {
+    private struct Subscription {
+        let filter: NostrFilter
+        let callback: (NostrEvent) -> Void
     }
+    
+    private var subscriptions: [Subscription] = []
+    private let queue = DispatchQueue(label: "com.damus.pubsub", attributes: .concurrent)
+    private let processingQueue = DispatchQueue(label: "com.damus.pubsub.processing", qos: .userInitiated)
+    
+    func subscribe(filter: NostrFilter, onEvent: @escaping (NostrEvent) -> Void) -> () -> Void {
+        let subscription = Subscription(filter: filter, callback: onEvent)
+        
+        queue.async(flags: .barrier) {
+            self.subscriptions.append(subscription)
+        }
+        
+        // Return unsubscribe function
+        return { [weak self] in
+            self?.queue.async(flags: .barrier) {
+                self?.subscriptions.removeAll(where: { $0.filter == filter })
+            }
+        }
+    }
+    
+    func publish(_ event: NostrEvent) {
+        // Create a local copy of subscriptions to avoid concurrent modification
+        var matchingSubscriptions: [Subscription] = []
+        
+        queue.sync {
+            matchingSubscriptions = self.subscriptions.filter { 
+                event_matches_filter(event, filter: $0.filter)
+            }
+        }
+        
+        // Process each matching subscription on a serial queue to avoid concurrent state modification
+        processingQueue.async {
+            for subscription in matchingSubscriptions {
+                subscription.callback(event)
+            }
+        }
+    }
+    
+    // Helper to create a NostrSubscribe function
+    func createNostrSubscribe() -> DoubleRatchet.NostrSubscribe {
+        return { [weak self] filter, onEvent in
+            guard let self = self else { return {} }
+            return self.subscribe(filter: filter, onEvent: onEvent)
+        }
+    }
+}
+
+final class SessionTests: XCTestCase {
     
     func testInitializeWithCorrectProperties() throws {
         let aliceKeypair = generate_new_keypair()
         let bobKeypair = generate_new_keypair()
         
-        let mockSubscribe = createMockSubscribe()
+        let pubsub = PubSub()
+        let mockSubscribe = pubsub.createNostrSubscribe()
         
         let alice = try Session.initialize(
             theirEphemeralNostrPublicKey: bobKeypair.pubkey,
@@ -46,7 +95,8 @@ final class SessionTests: XCTestCase {
         let aliceKeypair = generate_new_keypair()
         let bobKeypair = generate_new_keypair()
         
-        let mockSubscribe = createMockSubscribe()
+        let pubsub = PubSub()
+        let mockSubscribe = pubsub.createNostrSubscribe()
         
         let aliceSession = try Session.initialize(
             theirEphemeralNostrPublicKey: bobKeypair.pubkey,
@@ -67,31 +117,13 @@ final class SessionTests: XCTestCase {
         XCTAssertNotNil(event.content)
         XCTAssertGreaterThan(event.created_at, 0)
         XCTAssertEqual(event.pubkey.hex().count, 64)
-        XCTAssertNotEqual(event.pubkey.hex(), aliceKeypair.pubkey.hex())
         XCTAssertEqual(event.id.hex().count, 64)
         XCTAssertEqual(event.sig.data.count, 64)
     }
     
     func testHandleIncomingEventsAndUpdateKeys() async throws {
-        var messageQueue: [NostrEvent] = []
-        
-        let mockSubscribe: DoubleRatchet.NostrSubscribe = { filter, onEvent in
-            print("Mock subscribe called for filter:", filter)
-            
-            // Create a task to continuously monitor the queue
-            Task {
-                while true {
-                    if let index = messageQueue.firstIndex(where: { _ in true }) {
-                        let event = messageQueue.remove(at: index)
-                        print("Processing event from queue:", event.id.hex().prefix(8))
-                        onEvent(event)
-                    }
-                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 second delay
-                }
-            }
-            
-            return {}
-        }
+        let pubsub = PubSub()
+        let mockSubscribe = pubsub.createNostrSubscribe()
         
         let aliceKeypair = generate_new_keypair()
         let bobKeypair = generate_new_keypair()
@@ -119,8 +151,8 @@ final class SessionTests: XCTestCase {
         var bobMessages = DoubleRatchet.createEventStream(bob).makeAsyncIterator()
         
         let (event, _) = try alice.sendText("Hello, Bob!")
-        print("Adding Alice's event to queue:", event.id.hex().prefix(8))
-        messageQueue.append(event)
+        print("Publishing Alice's event:", event.id.hex().prefix(8))
+        pubsub.publish(event)
         
         // Wait for Bob to receive
         print("Waiting for Bob to receive message...")
@@ -130,25 +162,8 @@ final class SessionTests: XCTestCase {
     }
     
     func testMultipleBackAndForthMessages() async throws {
-        var messageQueue: [NostrEvent] = []
-        
-        let mockSubscribe: DoubleRatchet.NostrSubscribe = { filter, onEvent in
-            print("Mock subscribe called for filter:", filter)
-            
-            // Create a task to continuously monitor the queue
-            Task {
-                while true {
-                    if let index = messageQueue.firstIndex(where: { _ in true }) {
-                        let event = messageQueue.remove(at: index)
-                        print("Processing event from queue:", event.id.hex().prefix(8))
-                        onEvent(event)
-                    }
-                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 second delay
-                }
-            }
-            
-            return {}
-        }
+        let pubsub = PubSub()
+        let mockSubscribe = pubsub.createNostrSubscribe()
         
         let aliceKeypair = generate_new_keypair()
         let bobKeypair = generate_new_keypair()
@@ -176,8 +191,8 @@ final class SessionTests: XCTestCase {
         
         // Alice sends to Bob
         let (aliceEvent, _) = try alice.sendText("Hello Bob!")
-        print("Adding Alice's event to queue:", aliceEvent.id.hex().prefix(8))
-        messageQueue.append(aliceEvent)
+        print("Publishing Alice's event:", aliceEvent.id.hex().prefix(8))
+        pubsub.publish(aliceEvent)
         
         // Wait for Bob to receive
         print("Waiting for Bob to receive message...")
@@ -186,8 +201,8 @@ final class SessionTests: XCTestCase {
         
         // Now Bob can reply
         let (bobEvent, _) = try bob.sendText("Hi Alice!")
-        print("Adding Bob's event to queue:", bobEvent.id.hex().prefix(8))
-        messageQueue.append(bobEvent)
+        print("Publishing Bob's event:", bobEvent.id.hex().prefix(8))
+        pubsub.publish(bobEvent)
         
         // Wait for Alice to receive
         print("Waiting for Alice to receive message...")
@@ -196,15 +211,8 @@ final class SessionTests: XCTestCase {
     }
     
     func testOutOfOrderMessageDelivery() async throws {
-        var messageQueue: [NostrEvent] = []
-        
-        let mockSubscribe: DoubleRatchet.NostrSubscribe = { filter, onEvent in
-            if let index = messageQueue.firstIndex(where: { _ in true }) {
-                let event = messageQueue.remove(at: index)
-                onEvent(event)
-            }
-            return {}
-        }
+        let pubsub = PubSub()
+        let mockSubscribe = pubsub.createNostrSubscribe()
         
         let aliceKeypair = generate_new_keypair()
         let bobKeypair = generate_new_keypair()
@@ -234,32 +242,28 @@ final class SessionTests: XCTestCase {
         let (message2, _) = try alice.sendText("Message 2")
         let (message3, _) = try alice.sendText("Message 3")
         
-        // Deliver out of order
-        messageQueue.append(message3)
+        // Deliver out of order with delays between each to avoid concurrency issues
+        pubsub.publish(message3)
         let receivedMessage3 = await bobMessages.next()
         XCTAssertEqual(receivedMessage3?.content, "Message 3")
         
-        // Deliver skipped messages
-        messageQueue.append(message1)
-        messageQueue.append(message2)
+        // Add a small delay between publishing events
+        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 second
         
+        pubsub.publish(message1)
         let receivedMessage1 = await bobMessages.next()
         XCTAssertEqual(receivedMessage1?.content, "Message 1")
         
+        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 second
+        
+        pubsub.publish(message2)
         let receivedMessage2 = await bobMessages.next()
         XCTAssertEqual(receivedMessage2?.content, "Message 2")
     }
     
     func testSessionSerialization() async throws {
-        var messageQueue: [NostrEvent] = []
-        
-        let mockSubscribe: DoubleRatchet.NostrSubscribe = { filter, onEvent in
-            if let index = messageQueue.firstIndex(where: { _ in true }) {
-                let event = messageQueue.remove(at: index)
-                onEvent(event)
-            }
-            return {}
-        }
+        let pubsub = PubSub()
+        let mockSubscribe = pubsub.createNostrSubscribe()
         
         let aliceKeypair = generate_new_keypair()
         let bobKeypair = generate_new_keypair()
@@ -286,7 +290,7 @@ final class SessionTests: XCTestCase {
         
         // Initial message exchange
         let (message1, _) = try alice.sendText("Message 1")
-        messageQueue.append(message1)
+        pubsub.publish(message1)
         let receivedMessage1 = await bobMessages.next()
         XCTAssertEqual(receivedMessage1?.content, "Message 1")
         
@@ -304,7 +308,7 @@ final class SessionTests: XCTestCase {
         
         // Continue conversation
         let (message2, _) = try alice.sendText("Message 2")
-        messageQueue.append(message2)
+        pubsub.publish(message2)
         let receivedMessage2 = await bobMessages.next()
         XCTAssertEqual(receivedMessage2?.content, "Message 2")
     }

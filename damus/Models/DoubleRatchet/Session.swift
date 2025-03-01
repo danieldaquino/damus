@@ -330,37 +330,39 @@ class Session {
         let text = try ratchetDecrypt(header: header, ciphertext: event.content, nostrSender: event.pubkey)
         print("\(name) decrypted text:", text)
         
-        guard let innerEvent = NostrEvent.owned_from_json(json: text) else {
-            print("\(name) Invalid event received", text)
-            return
-        }
+        let innerEvent: DoubleRatchet.Rumor = try JSONDecoder().decode(DoubleRatchet.Rumor.self, from: Data(text.utf8))
 
-        if !innerEvent.sig.data.isEmpty {
-            print("\(name) Error: Inner event has sig", innerEvent)
+        let calculatedId = calculate_event_id(
+            pubkey: innerEvent.pubkey,
+            created_at: innerEvent.created_at,
+            kind: innerEvent.kind,
+            tags: innerEvent.tags,
+            content: innerEvent.content
+        ).hex()
+        
+        if innerEvent.id != calculatedId {
+            print("\(name) Error: Inner event id does not match", innerEvent)
             return
         }
 
         let rumor = DoubleRatchet.Rumor(
-            id: innerEvent.id.hex(),
+            id: innerEvent.id,
             content: innerEvent.content,
             kind: innerEvent.kind,
             created_at: innerEvent.created_at,
-            tags: innerEvent.tags.strings(),
+            tags: innerEvent.tags,
             pubkey: event.pubkey
         )
         
-        guard validate_event(ev: innerEvent) == .ok else {
-            print("\(name) Event validation failed", innerEvent)
-            return
-        }
-        
-        if innerEvent.id != calculate_event_id(
+        let calculatedEventId = calculate_event_id(
             pubkey: innerEvent.pubkey,
             created_at: innerEvent.created_at,
             kind: innerEvent.kind,
-            tags: innerEvent.tags.strings(),
+            tags: innerEvent.tags,
             content: innerEvent.content
-        ) {
+        ).hex()
+        
+        if innerEvent.id != calculatedEventId {
             print("\(name) Event hash does not match", innerEvent)
             return
         }
