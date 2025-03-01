@@ -250,10 +250,15 @@ class Session {
                     privateKeyA: currentKey.privkey,
                     publicKeyB: nostrSender
                 )
-                if let dataSecret = currentSecret as? Data {
-                    state.skippedKeys[nostrSender.hex()]?.headerKeys.append(dataSecret)
-                } else {
-                    print("\(name) Warning: Could not convert currentSecret to Data")
+                // Convert ContiguousBytes to Data
+                var currentSecretData = Data()
+                currentSecret.withUnsafeBytes { bytes in
+                    currentSecretData.append(contentsOf: bytes)
+                }
+                
+                // Only append if not already present
+                if !state.skippedKeys[nostrSender.hex()]!.headerKeys.contains(currentSecretData) {
+                    state.skippedKeys[nostrSender.hex()]?.headerKeys.append(currentSecretData)
                 }
             }
             
@@ -261,10 +266,15 @@ class Session {
                 privateKeyA: state.ourNextNostrKey.privkey,
                 publicKeyB: nostrSender
             )
-            if let dataSecret = nextSecret as? Data {
-                state.skippedKeys[nostrSender.hex()]?.headerKeys.append(dataSecret)
-            } else {
-                print("\(name) Warning: Could not convert nextSecret to Data")
+            // Convert ContiguousBytes to Data
+            var nextSecretData = Data()
+            nextSecret.withUnsafeBytes { bytes in
+                nextSecretData.append(contentsOf: bytes)
+            }
+            
+            // Only append if not already present
+            if !state.skippedKeys[nostrSender.hex()]!.headerKeys.contains(nextSecretData) {
+                state.skippedKeys[nostrSender.hex()]?.headerKeys.append(nextSecretData)
             }
         }
         

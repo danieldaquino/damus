@@ -39,10 +39,17 @@ private class PubSub {
         }
         
         // Process each matching subscription on a serial queue to avoid concurrent state modification
-        processingQueue.async {
-            for subscription in matchingSubscriptions {
+        for subscription in matchingSubscriptions {
+            // Use DispatchSemaphore to ensure synchronous execution
+            let semaphore = DispatchSemaphore(value: 0)
+            
+            processingQueue.async {
                 subscription.callback(event)
+                semaphore.signal()
             }
+            
+            // Wait for the callback to complete before proceeding
+            semaphore.wait()
         }
     }
     
