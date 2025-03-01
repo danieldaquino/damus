@@ -25,9 +25,9 @@ final class InviteTests: XCTestCase {
         let url = invite.getUrl()
         let parsedInvite = try Invite.fromUrl(URL(string: url)!)
         
-        XCTAssertEqual(parsedInvite.inviterEphemeralPublicKey, invite.inviterEphemeralPublicKey)
+        XCTAssertEqual(parsedInvite.inviterEphemeralPublicKey.hex(), invite.inviterEphemeralPublicKey.hex())
         XCTAssertEqual(parsedInvite.sharedSecret, invite.sharedSecret)
-        XCTAssertEqual(parsedInvite.inviter, invite.inviter)
+        XCTAssertEqual(parsedInvite.inviter.hex(), invite.inviter.hex())
     }
     
     func testAcceptInviteAndCreateSession() async throws {
@@ -108,34 +108,33 @@ final class InviteTests: XCTestCase {
         let aliceKeypair = generate_new_keypair()
         let invite = try Invite.createNew(inviter: aliceKeypair.pubkey, label: "Test Invite", maxUses: 5)
         
-        guard let event = invite.getEvent() else {
-            XCTFail("Failed to create event")
-            return
-        }
+        let event = invite.getEvent(keypair: aliceKeypair)
         
         XCTAssertEqual(event.kind, DoubleRatchet.Constants.INVITE_EVENT_KIND)
-        XCTAssertEqual(event.pubkey, aliceKeypair.pubkey)
+        XCTAssertEqual(event.pubkey.hex(), aliceKeypair.pubkey.hex())
         
         // Find the ephemeral key tag
-        let tagsArray = Array(event.tags)
-        let ephemeralKeyTagIndex = tagsArray.firstIndex { tag in
+        let ephemeralKeyTag = event.tags.first { tag in
             tag.count > 0 && tag[0].string() == "ephemeralKey"
         }
-        XCTAssertNotNil(ephemeralKeyTagIndex)
-        let ephemeralKeyTag = tagsArray[ephemeralKeyTagIndex!]
-        XCTAssertEqual(ephemeralKeyTag[1].string(), invite.inviterEphemeralPublicKey.hex())
+        XCTAssertNotNil(ephemeralKeyTag)
+        XCTAssertEqual(ephemeralKeyTag?[1].string(), invite.inviterEphemeralPublicKey.hex())
         
         // Find the shared secret tag
-        let sharedSecretTagIndex = tagsArray.firstIndex { tag in
+        let sharedSecretTag = event.tags.first { tag in
             tag.count > 0 && tag[0].string() == "sharedSecret"
         }
-        XCTAssertNotNil(sharedSecretTagIndex)
-        let sharedSecretTag = tagsArray[sharedSecretTagIndex!]
-        XCTAssertEqual(sharedSecretTag[1].string(), invite.sharedSecret)
+        XCTAssertNotNil(sharedSecretTag)
+        XCTAssertEqual(sharedSecretTag?[1].string(), invite.sharedSecret)
         
         let parsedInvite = try Invite.fromEvent(event)
-        XCTAssertEqual(parsedInvite.inviterEphemeralPublicKey, invite.inviterEphemeralPublicKey)
+        
+        // Add debug output
+        print("Original ephemeral key: \(invite.inviterEphemeralPublicKey.hex())")
+        print("Parsed ephemeral key: \(parsedInvite.inviterEphemeralPublicKey.hex())")
+        
+        XCTAssertEqual(parsedInvite.inviterEphemeralPublicKey.hex(), invite.inviterEphemeralPublicKey.hex())
         XCTAssertEqual(parsedInvite.sharedSecret, invite.sharedSecret)
-        XCTAssertEqual(parsedInvite.inviter, aliceKeypair.pubkey)
+        XCTAssertEqual(parsedInvite.inviter.hex(), invite.inviter.hex())
     }
 } 

@@ -56,6 +56,7 @@ class Invite {
               let decodedHash = fragment.removingPercentEncoding,
               let data = decodedHash.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            print("Invalid URL format: \(url)")  // Debug output
             throw InviteError.invalidUrl
         }
         
@@ -64,6 +65,7 @@ class Invite {
               let sharedSecret = json["sharedSecret"] as? String,
               let inviterPubkey = Pubkey(hex: inviter),
               let ephemeralPubkey = Pubkey(hex: ephemeralKey) else {
+            print("Missing fields in URL: \(json)")  // Debug output
             throw InviteError.missingFields
         }
         
@@ -75,16 +77,33 @@ class Invite {
     }
     
     static func fromEvent(_ event: NostrEvent) throws -> Invite {
-        guard validate_event(ev: event) == .ok else {
+        let validationResult = validate_event(ev: event)
+        guard validationResult == .ok else {
+            print("Invalid event signature: \(event.id.hex()), validation result: \(validationResult)")
             throw InviteError.invalidSignature
         }
         
-        let tags = event.tags
-        guard let ephemeralKeyTag = tags.first(where: { String(describing: $0[0]) == "ephemeralKey" }),
-              let sharedSecretTag = tags.first(where: { String(describing: $0[0]) == "sharedSecret" }),
-              let ephemeralKey = ephemeralKeyTag[1] as? String,
-              let sharedSecret = sharedSecretTag[1] as? String,
+        // Print the event tags for debugging
+        print("Event tags: \(event.tags)")
+        
+        // Find tags by their first element using direct tag access
+        var ephemeralKeyValue: String? = nil
+        var sharedSecretValue: String? = nil
+        
+        for tag in event.tags {
+            if tag.count > 1 {
+                if tag[0].string() == "ephemeralKey" {
+                    ephemeralKeyValue = tag[1].string()
+                } else if tag[0].string() == "sharedSecret" {
+                    sharedSecretValue = tag[1].string()
+                }
+            }
+        }
+        
+        guard let ephemeralKey = ephemeralKeyValue,
+              let sharedSecret = sharedSecretValue,
               let ephemeralPubkey = Pubkey(hex: ephemeralKey) else {
+            print("Missing or invalid tags in event: \(event.tags)")
             throw InviteError.missingTags
         }
         
@@ -103,20 +122,23 @@ class Invite {
         ]
         
         guard let jsonData = try? JSONSerialization.data(withJSONObject: data),
-              let jsonString = String(data: jsonData, encoding: .utf8),
-              let encodedJson = jsonString.addingPercentEncoding(withAllowedCharacters: .urlFragmentAllowed),
-              var components = URLComponents(string: root) else {
+              let jsonString = String(data: jsonData, encoding: .utf8) else {
             return root
         }
         
-        components.fragment = encodedJson
+        var components = URLComponents(string: root) ?? URLComponents()
+        components.fragment = jsonString
         return components.url?.absoluteString ?? root
     }
     
-    func getEvent() -> NostrEvent? {
-        return NostrEvent(
+    func getEvent(keypair: FullKeypair) -> NostrEvent {
+        if keypair.pubkey != inviter {
+            fatalError("Invalid keypair for invite: \(keypair.pubkey.hex()) vs \(inviter.hex())")
+        }
+
+        guard let event = NostrEvent(
             content: "",
-            keypair: Keypair(pubkey: inviter, privkey: inviterEphemeralPrivateKey!),
+            keypair: keypair.to_keypair(),
             kind: DoubleRatchet.Constants.INVITE_EVENT_KIND,
             tags: [
                 ["ephemeralKey", inviterEphemeralPublicKey.hex()],
@@ -124,7 +146,11 @@ class Invite {
                 ["d", "double-ratchet/invites/public"],
                 ["l", "double-ratchet/invites"]
             ]
-        )
+        ) else {
+            fatalError("Failed to create NostrEvent")
+        }
+        
+        return event
     }
     
     func accept(
