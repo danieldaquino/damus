@@ -278,12 +278,14 @@ class Session {
             }
         }
         
-        while state.receivingChainMessageNumber < until {
+        var n = state.receivingChainMessageNumber
+        while n < until {
             let (newReceivingChainKey, messageKey) = try DoubleRatchet.kdf(state.receivingChainKey!, DoubleRatchet.bytesToData([UInt8](repeating: 1, count: 1)), 2)
             state.receivingChainKey = newReceivingChainKey
-            state.skippedKeys[nostrSender.hex()]?.messageKeys[state.receivingChainMessageNumber] = messageKey
-            state.receivingChainMessageNumber += 1
+            state.skippedKeys[nostrSender.hex()]?.messageKeys[n] = messageKey
+            n += 1
         }
+        state.receivingChainMessageNumber = n
     }
     
     private func trySkippedMessageKeys(header: DoubleRatchet.Header, ciphertext: String, nostrSender: Pubkey) throws -> String? {

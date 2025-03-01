@@ -11,7 +11,6 @@ private class PubSub {
     
     private var subscriptions: [Subscription] = []
     private let queue = DispatchQueue(label: "com.damus.pubsub", attributes: .concurrent)
-    private let processingQueue = DispatchQueue(label: "com.damus.pubsub.processing", qos: .userInitiated)
     
     func subscribe(filter: NostrFilter, onEvent: @escaping (NostrEvent) -> Void) -> () -> Void {
         let subscription = Subscription(filter: filter, callback: onEvent)
@@ -38,18 +37,9 @@ private class PubSub {
             }
         }
         
-        // Process each matching subscription on a serial queue to avoid concurrent state modification
+        // Process each matching subscription directly without creating additional threads
         for subscription in matchingSubscriptions {
-            // Use DispatchSemaphore to ensure synchronous execution
-            let semaphore = DispatchSemaphore(value: 0)
-            
-            processingQueue.async {
-                subscription.callback(event)
-                semaphore.signal()
-            }
-            
-            // Wait for the callback to complete before proceeding
-            semaphore.wait()
+            subscription.callback(event)
         }
     }
     
