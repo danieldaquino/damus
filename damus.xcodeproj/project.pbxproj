@@ -1666,6 +1666,23 @@
 		E04A37C62B544F090029650D /* URIParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = E04A37C52B544F090029650D /* URIParsing.swift */; };
 		E06336AA2B75832100A88E6B /* ImageMetadataTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = E06336A92B75832100A88E6B /* ImageMetadataTest.swift */; };
 		E06336AB2B75850100A88E6B /* img_with_location.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = E06336A82B7582E000A88E6B /* img_with_location.jpeg */; };
+		E0C9B7992D73285300270F0B /* InvitesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B7982D73285300270F0B /* InvitesView.swift */; };
+		E0C9B79A2D73285300270F0B /* InvitesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B7982D73285300270F0B /* InvitesView.swift */; };
+		E0C9B79B2D73285300270F0B /* InvitesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B7982D73285300270F0B /* InvitesView.swift */; };
+		E0C9B7A12D73286500270F0B /* Invite.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B79C2D73286500270F0B /* Invite.swift */; };
+		E0C9B7A22D73286500270F0B /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B79D2D73286500270F0B /* Session.swift */; };
+		E0C9B7A32D73286500270F0B /* Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B79E2D73286500270F0B /* Types.swift */; };
+		E0C9B7A42D73286500270F0B /* Utils.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B79F2D73286500270F0B /* Utils.swift */; };
+		E0C9B7A52D73286500270F0B /* Invite.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B79C2D73286500270F0B /* Invite.swift */; };
+		E0C9B7A62D73286500270F0B /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B79D2D73286500270F0B /* Session.swift */; };
+		E0C9B7A72D73286500270F0B /* Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B79E2D73286500270F0B /* Types.swift */; };
+		E0C9B7A82D73286500270F0B /* Utils.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B79F2D73286500270F0B /* Utils.swift */; };
+		E0C9B7A92D73286500270F0B /* Invite.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B79C2D73286500270F0B /* Invite.swift */; };
+		E0C9B7AA2D73286500270F0B /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B79D2D73286500270F0B /* Session.swift */; };
+		E0C9B7AB2D73286500270F0B /* Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B79E2D73286500270F0B /* Types.swift */; };
+		E0C9B7AC2D73286500270F0B /* Utils.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B79F2D73286500270F0B /* Utils.swift */; };
+		E0C9B7B02D7328CB00270F0B /* SessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B7AE2D7328CB00270F0B /* SessionTests.swift */; };
+		E0C9B7B12D7328CB00270F0B /* InviteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B7AD2D7328CB00270F0B /* InviteTests.swift */; };
 		E0E024112B7C19C20075735D /* TranslationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E024102B7C19C20075735D /* TranslationTests.swift */; };
 		E0EE9DD42B8E5FEA00F3002D /* ImageProcessing.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0EE9DD32B8E5FEA00F3002D /* ImageProcessing.swift */; };
 		E4FA1C032A24BB7F00482697 /* SearchSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4FA1C022A24BB7F00482697 /* SearchSettingsView.swift */; };
@@ -2522,6 +2539,13 @@
 		E04A37C52B544F090029650D /* URIParsing.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = URIParsing.swift; sourceTree = "<group>"; };
 		E06336A82B7582E000A88E6B /* img_with_location.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = img_with_location.jpeg; sourceTree = "<group>"; };
 		E06336A92B75832100A88E6B /* ImageMetadataTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageMetadataTest.swift; sourceTree = "<group>"; };
+		E0C9B7982D73285300270F0B /* InvitesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InvitesView.swift; sourceTree = "<group>"; };
+		E0C9B79C2D73286500270F0B /* Invite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Invite.swift; sourceTree = "<group>"; };
+		E0C9B79D2D73286500270F0B /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
+		E0C9B79E2D73286500270F0B /* Types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Types.swift; sourceTree = "<group>"; };
+		E0C9B79F2D73286500270F0B /* Utils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils.swift; sourceTree = "<group>"; };
+		E0C9B7AD2D7328CB00270F0B /* InviteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteTests.swift; sourceTree = "<group>"; };
+		E0C9B7AE2D7328CB00270F0B /* SessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTests.swift; sourceTree = "<group>"; };
 		E0E024102B7C19C20075735D /* TranslationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationTests.swift; sourceTree = "<group>"; };
 		E0EE9DD32B8E5FEA00F3002D /* ImageProcessing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageProcessing.swift; sourceTree = "<group>"; };
 		E4FA1C022A24BB7F00482697 /* SearchSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSettingsView.swift; sourceTree = "<group>"; };
@@ -2708,6 +2732,7 @@
 		4C0A3F8D280F63FF000448DE /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				E0C9B7A02D73286500270F0B /* DoubleRatchet */,
 				D74F43082B23F09300425B75 /* Purple */,
 				BA3759882ABCCDE30018D73B /* Camera */,
 				4C190F1E2A535FC200027FD5 /* Zaps */,
@@ -3112,6 +3137,7 @@
 		4C75EFA227FA576C0006080F /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				E0C9B7982D73285300270F0B /* InvitesView.swift */,
 				D74EA08C2D2E26E6002290DD /* ErrorHandling */,
 				D7D68FF72C9E01A80015A515 /* Utils */,
 				D78DB85D2C20FE9E00F0AB12 /* Chat */,
@@ -3647,6 +3673,7 @@
 		4CE6DEF627F7A08200C66700 /* damusTests */ = {
 			isa = PBXGroup;
 			children = (
+				E0C9B7AF2D7328CB00270F0B /* DoubleRatchet */,
 				D7DB1FED2D5AC50F00CF06DA /* NIP44v2EncryptionTests.swift */,
 				D7A0D8742D1FE66A00DCBE59 /* EditPictureControlTests.swift */,
 				E06336A72B7582D600A88E6B /* Assets */,
@@ -3994,6 +4021,26 @@
 				E06336A82B7582E000A88E6B /* img_with_location.jpeg */,
 			);
 			path = Assets;
+			sourceTree = "<group>";
+		};
+		E0C9B7A02D73286500270F0B /* DoubleRatchet */ = {
+			isa = PBXGroup;
+			children = (
+				E0C9B79C2D73286500270F0B /* Invite.swift */,
+				E0C9B79D2D73286500270F0B /* Session.swift */,
+				E0C9B79E2D73286500270F0B /* Types.swift */,
+				E0C9B79F2D73286500270F0B /* Utils.swift */,
+			);
+			path = DoubleRatchet;
+			sourceTree = "<group>";
+		};
+		E0C9B7AF2D7328CB00270F0B /* DoubleRatchet */ = {
+			isa = PBXGroup;
+			children = (
+				E0C9B7AD2D7328CB00270F0B /* InviteTests.swift */,
+				E0C9B7AE2D7328CB00270F0B /* SessionTests.swift */,
+			);
+			path = DoubleRatchet;
 			sourceTree = "<group>";
 		};
 		F71694E82A66221E001F4053 /* Onboarding */ = {
@@ -4397,6 +4444,10 @@
 				4C285C8428385690008A31F1 /* CreateAccountView.swift in Sources */,
 				4CDD1AE22A6B3074001CD4DF /* NdbTagsIterator.swift in Sources */,
 				4C216F34286F5ACD00040376 /* DMView.swift in Sources */,
+				E0C9B7A52D73286500270F0B /* Invite.swift in Sources */,
+				E0C9B7A62D73286500270F0B /* Session.swift in Sources */,
+				E0C9B7A72D73286500270F0B /* Types.swift in Sources */,
+				E0C9B7A82D73286500270F0B /* Utils.swift in Sources */,
 				D7CB5D512B1174D100AD4105 /* FriendFilter.swift in Sources */,
 				D7CBD1D42B8D21DC00BFD889 /* DamusPurpleNotificationManagement.swift in Sources */,
 				4C32B9572A9AD44700DC3548 /* Root.swift in Sources */,
@@ -4824,6 +4875,7 @@
 				4C75EFA427FA577B0006080F /* PostView.swift in Sources */,
 				4C30AC7229A5677A00E2BD5A /* NotificationsView.swift in Sources */,
 				4C1A9A2129DDD3E100516EAC /* KeySettingsView.swift in Sources */,
+				E0C9B79A2D73285300270F0B /* InvitesView.swift in Sources */,
 				D723C38E2AB8D83400065664 /* ContentFilters.swift in Sources */,
 				4C011B5E2BD0A56A002F2F9B /* ChatEventView.swift in Sources */,
 				4C32B95A2A9AD44700DC3548 /* Verifiable.swift in Sources */,
@@ -4881,6 +4933,8 @@
 				D72A2D072AD9C1FB002AFF62 /* MockProfiles.swift in Sources */,
 				B5A75C2A2B546D94007AFBC0 /* MuteItemTests.swift in Sources */,
 				D7DB1FEE2D5AC51B00CF06DA /* NIP44v2EncryptionTests.swift in Sources */,
+				E0C9B7B02D7328CB00270F0B /* SessionTests.swift in Sources */,
+				E0C9B7B12D7328CB00270F0B /* InviteTests.swift in Sources */,
 				4C4F14A72A2A61A30045A0B9 /* NostrScriptTests.swift in Sources */,
 				D78525252A7B2EA4002FA637 /* NoteContentViewTests.swift in Sources */,
 				4C3EA67B28FF7B3900C48A62 /* InvoiceTests.swift in Sources */,
@@ -5134,6 +5188,10 @@
 				82D6FB712CD99F7900C925F4 /* PhotoCaptureProcessor.swift in Sources */,
 				82D6FB722CD99F7900C925F4 /* VideoCaptureProcessor.swift in Sources */,
 				82D6FB732CD99F7900C925F4 /* CustomizeZapModel.swift in Sources */,
+				E0C9B7A92D73286500270F0B /* Invite.swift in Sources */,
+				E0C9B7AA2D73286500270F0B /* Session.swift in Sources */,
+				E0C9B7AB2D73286500270F0B /* Types.swift in Sources */,
+				E0C9B7AC2D73286500270F0B /* Utils.swift in Sources */,
 				82D6FB742CD99F7900C925F4 /* EventGroup.swift in Sources */,
 				82D6FB752CD99F7900C925F4 /* ZapGroup.swift in Sources */,
 				82D6FB762CD99F7900C925F4 /* NotificationStatusModel.swift in Sources */,
@@ -5203,6 +5261,7 @@
 				82D6FBB42CD99F7900C925F4 /* NostrResponse.swift in Sources */,
 				82D6FBB52CD99F7900C925F4 /* NostrEvent.swift in Sources */,
 				82D6FBB62CD99F7900C925F4 /* Nip98HTTPAuth.swift in Sources */,
+				E0C9B7992D73285300270F0B /* InvitesView.swift in Sources */,
 				82D6FBB72CD99F7900C925F4 /* Relay.swift in Sources */,
 				82D6FBB82CD99F7900C925F4 /* RelayPool.swift in Sources */,
 				82D6FBB92CD99F7900C925F4 /* ProofOfWork.swift in Sources */,
@@ -5557,6 +5616,10 @@
 				D73E5EAD2C6A97F4007EB227 /* MutedThreadsManager.swift in Sources */,
 				D73E5EAE2C6A97F4007EB227 /* WalletModel.swift in Sources */,
 				D73E5EAF2C6A97F4007EB227 /* ZapButtonModel.swift in Sources */,
+				E0C9B7A12D73286500270F0B /* Invite.swift in Sources */,
+				E0C9B7A22D73286500270F0B /* Session.swift in Sources */,
+				E0C9B7A32D73286500270F0B /* Types.swift in Sources */,
+				E0C9B7A42D73286500270F0B /* Utils.swift in Sources */,
 				D73E5EB02C6A97F4007EB227 /* ContentFilters.swift in Sources */,
 				D73E5EB12C6A97F4007EB227 /* DamusCacheManager.swift in Sources */,
 				D73E5EB22C6A97F4007EB227 /* NotificationsManager.swift in Sources */,
@@ -5662,6 +5725,7 @@
 				D73E5F162C6A97F4007EB227 /* RelayView.swift in Sources */,
 				D73E5F172C6A97F4007EB227 /* RelayConfigView.swift in Sources */,
 				D73E5F182C6A97F4007EB227 /* RelayDetailView.swift in Sources */,
+				E0C9B79B2D73285300270F0B /* InvitesView.swift in Sources */,
 				D73E5F192C6A97F4007EB227 /* RelayToggle.swift in Sources */,
 				D73E5F1A2C6A97F4007EB227 /* RelayStatusView.swift in Sources */,
 				D73E5F1B2C6A97F4007EB227 /* RelayType.swift in Sources */,
