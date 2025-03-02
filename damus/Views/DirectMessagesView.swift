@@ -19,6 +19,7 @@ struct DirectMessagesView: View {
     @State var dm_type: DMType = .friend
     @ObservedObject var model: DirectMessagesModel
     @ObservedObject var settings: UserSettingsStore
+    @State private var invitesView: InvitesView? = nil
 
     func MainContent(requests: Bool) -> some View {
         Group {

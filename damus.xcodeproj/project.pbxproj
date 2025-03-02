@@ -1683,6 +1683,9 @@
 		E0C9B7AC2D73286500270F0B /* Utils.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B79F2D73286500270F0B /* Utils.swift */; };
 		E0C9B7B02D7328CB00270F0B /* SessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B7AE2D7328CB00270F0B /* SessionTests.swift */; };
 		E0C9B7B12D7328CB00270F0B /* InviteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B7AD2D7328CB00270F0B /* InviteTests.swift */; };
+		E0C9B7B32D74A5A400270F0B /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B7B22D74A5A400270F0B /* SessionManager.swift */; };
+		E0C9B7B42D74A5A400270F0B /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B7B22D74A5A400270F0B /* SessionManager.swift */; };
+		E0C9B7B52D74A5A400270F0B /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B7B22D74A5A400270F0B /* SessionManager.swift */; };
 		E0E024112B7C19C20075735D /* TranslationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E024102B7C19C20075735D /* TranslationTests.swift */; };
 		E0EE9DD42B8E5FEA00F3002D /* ImageProcessing.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0EE9DD32B8E5FEA00F3002D /* ImageProcessing.swift */; };
 		E4FA1C032A24BB7F00482697 /* SearchSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4FA1C022A24BB7F00482697 /* SearchSettingsView.swift */; };
@@ -2546,6 +2549,7 @@
 		E0C9B79F2D73286500270F0B /* Utils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils.swift; sourceTree = "<group>"; };
 		E0C9B7AD2D7328CB00270F0B /* InviteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteTests.swift; sourceTree = "<group>"; };
 		E0C9B7AE2D7328CB00270F0B /* SessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTests.swift; sourceTree = "<group>"; };
+		E0C9B7B22D74A5A400270F0B /* SessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
 		E0E024102B7C19C20075735D /* TranslationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationTests.swift; sourceTree = "<group>"; };
 		E0EE9DD32B8E5FEA00F3002D /* ImageProcessing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageProcessing.swift; sourceTree = "<group>"; };
 		E4FA1C022A24BB7F00482697 /* SearchSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSettingsView.swift; sourceTree = "<group>"; };
@@ -4026,6 +4030,7 @@
 		E0C9B7A02D73286500270F0B /* DoubleRatchet */ = {
 			isa = PBXGroup;
 			children = (
+				E0C9B7B22D74A5A400270F0B /* SessionManager.swift */,
 				E0C9B79C2D73286500270F0B /* Invite.swift */,
 				E0C9B79D2D73286500270F0B /* Session.swift */,
 				E0C9B79E2D73286500270F0B /* Types.swift */,
@@ -4698,6 +4703,7 @@
 				5053ACA72A56DF3B00851AE3 /* DeveloperSettingsView.swift in Sources */,
 				F79C7FAD29D5E9620000F946 /* EditPictureControl.swift in Sources */,
 				4C011B5F2BD0A56A002F2F9B /* ChatroomThreadView.swift in Sources */,
+				E0C9B7B42D74A5A400270F0B /* SessionManager.swift in Sources */,
 				4C9F18E229AA9B6C008C55EC /* CustomizeZapView.swift in Sources */,
 				4C2859602A12A2BE004746F7 /* SupporterBadge.swift in Sources */,
 				D73E5F7F2C6AA066007EB227 /* DamusAliases.swift in Sources */,
@@ -5118,6 +5124,7 @@
 				82D6FB2C2CD99F7900C925F4 /* ImageMetadata.swift in Sources */,
 				82D6FB2D2CD99F7900C925F4 /* ImageProcessing.swift in Sources */,
 				82D6FB2E2CD99F7900C925F4 /* BlurHashEncode.swift in Sources */,
+				E0C9B7B52D74A5A400270F0B /* SessionManager.swift in Sources */,
 				82D6FB2F2CD99F7900C925F4 /* BlurHashDecode.swift in Sources */,
 				82D6FB302CD99F7900C925F4 /* PostBox.swift in Sources */,
 				82D6FB312CD99F7900C925F4 /* KFOptionSetter+.swift in Sources */,
@@ -5918,6 +5925,7 @@
 				D73E5F852C6AA628007EB227 /* LoadScript.swift in Sources */,
 				D703D74E2C6709DA00A400EA /* Pubkey.swift in Sources */,
 				D703D7802C670C2500A400EA /* NIP05.swift in Sources */,
+				E0C9B7B32D74A5A400270F0B /* SessionManager.swift in Sources */,
 				D703D7AA2C670E5D00A400EA /* verifier.c in Sources */,
 				D73E5E1D2C6A9680007EB227 /* PreviewCache.swift in Sources */,
 				D703D78E2C670CEF00A400EA /* Table.swift in Sources */,

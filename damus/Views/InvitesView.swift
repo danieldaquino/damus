@@ -1,16 +1,20 @@
 import SwiftUI
 import CodeScanner
 
+// Create a simple wrapper struct for the URL string
+struct QRCodeURL: Identifiable {
+    var id = UUID()
+    let url: String
+    let label: String
+}
+
 struct InvitesView: View {
     let damus_state: DamusState
     @State private var inviteLink: String = ""
-    @State private var publicInvite: Invite?
-    @State private var privateInvite: Invite?
     @State private var isCreatingInvite: Bool = false
     @State private var newInviteLabel: String = ""
     @State private var newInviteMaxUses: String = ""
     @State private var showingQRScanner = false
-    @State private var inviteToShow: Invite? = nil
     @State private var qrCodeURL: QRCodeURL? = nil
     
     var body: some View {
@@ -61,26 +65,36 @@ struct InvitesView: View {
                             .cornerRadius(10)
                     } else {
                         // Display existing invites
-                        if let publicInvite = publicInvite {
+                        let invites = damus_state.session_manager.getInvites()
+                        
+                        ForEach(Array(invites.enumerated()), id: \.offset) { index, invite in
                             InviteCardView(
-                                invite: publicInvite,
+                                invite: invite,
                                 onShowQR: {
-                                    qrCodeURL = QRCodeURL(url: publicInvite.getUrl(), label: publicInvite.label ?? "Public Invite")
+                                    qrCodeURL = QRCodeURL(url: invite.getUrl(), label: invite.label ?? "Invite")
                                 },
                                 onCopy: {
-                                    UIPasteboard.general.string = publicInvite.getUrl()
+                                    UIPasteboard.general.string = invite.getUrl()
                                 }
                             )
                         }
                         
-                        if let privateInvite = privateInvite {
-                            InviteCardView(
-                                invite: privateInvite,
-                                onShowQR: {
-                                    qrCodeURL = QRCodeURL(url: privateInvite.getUrl(), label: privateInvite.label ?? "Private Invite")
-                                },
-                                onCopy: {
-                                    UIPasteboard.general.string = privateInvite.getUrl()
+                        Button(action: {
+                            isCreatingInvite = true
+                        }) {
+                            Label(invites.isEmpty ? "Create Invite" : "Create Another Invite", systemImage: "plus")
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                        }
+                        .buttonStyle(.bordered)
+                        .sheet(isPresented: $isCreatingInvite) {
+                            CreateInviteView(
+                                isPresented: $isCreatingInvite,
+                                label: $newInviteLabel,
+                                maxUses: $newInviteMaxUses,
+                                onCreate: { isPrivate in
+                                    // Handle invite creation
+                                    createInvite(isPrivate: isPrivate)
                                 }
                             )
                         }
@@ -89,29 +103,26 @@ struct InvitesView: View {
                 .padding(.horizontal)
             }
         }
-        .onAppear {
-            loadInvites()
-        }
         .sheet(item: $qrCodeURL) { qrCode in
             InviteQRCodeView(url: qrCode.url, label: qrCode.label)
         }
     }
     
-    private func loadInvites() {
-        // Only load invites if private key is present
-        guard damus_state.keypair.privkey != nil else {
-            return
-        }
-        
-        // TODO: Load invites from storage
-        // For now, we'll just create sample invites for testing
+    private func createInvite(isPrivate: Bool) {
         do {
-            if let keypair = damus_state.keypair.to_full() {
-                publicInvite = try Invite.createNew(inviter: keypair.pubkey, label: "Public Invite")
-                privateInvite = try Invite.createNew(inviter: keypair.pubkey, label: "Private Invite")
-            }
+            // Create a new invite
+            let maxUsesInt = isPrivate ? Int(newInviteMaxUses) : nil
+            try damus_state.session_manager.createInvite(
+                label: newInviteLabel.isEmpty ? nil : newInviteLabel,
+                maxUses: maxUsesInt
+            )
+            
+            // Reset fields and close sheet
+            newInviteLabel = ""
+            newInviteMaxUses = ""
+            isCreatingInvite = false
         } catch {
-            print("Error creating sample invites: \(error)")
+            print("Error creating invite: \(error)")
         }
     }
 }
@@ -131,6 +142,12 @@ struct InviteCardView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
+            
+            Text(invite.getUrl())
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
             
             HStack {
                 Spacer()
@@ -310,11 +327,4 @@ struct InviteQRScannerView: View {
             print("Scanning failed: \(error.localizedDescription)")
         }
     }
-}
-
-// Create a simple wrapper struct for the URL string
-struct QRCodeURL: Identifiable {
-    let id = UUID()
-    let url: String
-    let label: String
 } 

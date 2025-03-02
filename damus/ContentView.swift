@@ -678,6 +678,9 @@ struct ContentView: View {
             try? pool.add_relay(.nwc(url: nwc.relay))
         }
 
+        // Create the session manager
+        let session_manager = SessionManager(keypair: keypair, pool: pool)
+
         self.damus_state = DamusState(pool: pool,
                                       keypair: keypair,
                                       likes: EventCounter(our_pubkey: pubkey),
@@ -686,6 +689,7 @@ struct ContentView: View {
                                       mutelist_manager: MutelistManager(user_keypair: keypair),
                                       profiles: Profiles(ndb: ndb),
                                       dms: home.dms,
+                                      session_manager: session_manager,
                                       previews: PreviewCache(),
                                       zaps: Zaps(our_pubkey: pubkey),
                                       lnurls: LNUrls(),

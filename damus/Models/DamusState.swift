@@ -38,9 +38,10 @@ class DamusState: HeadlessDamusState {
     let ndb: Ndb
     var purple: DamusPurple
     var push_notification_client: PushNotificationClient
+    var session_manager: SessionManager
     let emoji_provider: EmojiProvider
 
-    init(pool: RelayPool, keypair: Keypair, likes: EventCounter, boosts: EventCounter, contacts: Contacts, mutelist_manager: MutelistManager, profiles: Profiles, dms: DirectMessagesModel, previews: PreviewCache, zaps: Zaps, lnurls: LNUrls, settings: UserSettingsStore, relay_filters: RelayFilters, relay_model_cache: RelayModelCache, drafts: Drafts, events: EventCache, bookmarks: BookmarksManager, postbox: PostBox, bootstrap_relays: [RelayURL], replies: ReplyCounter, wallet: WalletModel, nav: NavigationCoordinator, music: MusicController?, video: DamusVideoCoordinator, ndb: Ndb, purple: DamusPurple? = nil, quote_reposts: EventCounter, emoji_provider: EmojiProvider) {
+    init(pool: RelayPool, keypair: Keypair, likes: EventCounter, boosts: EventCounter, contacts: Contacts, mutelist_manager: MutelistManager, profiles: Profiles, dms: DirectMessagesModel, session_manager: SessionManager, previews: PreviewCache, zaps: Zaps, lnurls: LNUrls, settings: UserSettingsStore, relay_filters: RelayFilters, relay_model_cache: RelayModelCache, drafts: Drafts, events: EventCache, bookmarks: BookmarksManager, postbox: PostBox, bootstrap_relays: [RelayURL], replies: ReplyCounter, wallet: WalletModel, nav: NavigationCoordinator, music: MusicController?, video: DamusVideoCoordinator, ndb: Ndb, purple: DamusPurple? = nil, quote_reposts: EventCounter, emoji_provider: EmojiProvider) {
         self.pool = pool
         self.keypair = keypair
         self.likes = likes
@@ -49,6 +50,7 @@ class DamusState: HeadlessDamusState {
         self.mutelist_manager = mutelist_manager
         self.profiles = profiles
         self.dms = dms
+        self.session_manager = session_manager
         self.previews = previews
         self.zaps = zaps
         self.lnurls = lnurls
@@ -117,6 +119,9 @@ class DamusState: HeadlessDamusState {
            let nwc = WalletConnectURL(str: nwc_str) {
             try? pool.add_relay(.nwc(url: nwc.relay))
         }
+
+        let session_manager = SessionManager(keypair: keypair, pool: pool)
+
         self.init(
             pool: pool,
             keypair: keypair,
@@ -126,6 +131,7 @@ class DamusState: HeadlessDamusState {
             mutelist_manager: MutelistManager(user_keypair: keypair),
             profiles: Profiles(ndb: ndb),
             dms: home.dms,
+            session_manager: session_manager,
             previews: PreviewCache(),
             zaps: Zaps(our_pubkey: pubkey),
             lnurls: LNUrls(),
@@ -187,9 +193,12 @@ class DamusState: HeadlessDamusState {
         let empty_pub: Pubkey = .empty
         let empty_sec: Privkey = .empty
         let kp = Keypair(pubkey: empty_pub, privkey: nil)
+        let empty_pool = RelayPool(ndb: .empty)
+        
+        let session_manager = SessionManager(keypair: kp, pool: empty_pool)
         
         return DamusState.init(
-            pool: RelayPool(ndb: .empty),
+            pool: empty_pool,
             keypair: Keypair(pubkey: empty_pub, privkey: empty_sec),
             likes: EventCounter(our_pubkey: empty_pub),
             boosts: EventCounter(our_pubkey: empty_pub),
@@ -197,6 +206,7 @@ class DamusState: HeadlessDamusState {
             mutelist_manager: MutelistManager(user_keypair: kp),
             profiles: Profiles(ndb: .empty),
             dms: DirectMessagesModel(our_pubkey: empty_pub),
+            session_manager: session_manager,
             previews: PreviewCache(),
             zaps: Zaps(our_pubkey: empty_pub),
             lnurls: LNUrls(),

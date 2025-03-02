@@ -2,7 +2,7 @@
 //  MockDamusState.swift
 //  damusTests
 //
-//  Created by Daniel D’Aquino on 2023-10-13.
+//  Created by Daniel D'Aquino on 2023-10-13.
 //
 
 import Foundation
@@ -34,6 +34,8 @@ func generate_test_damus_state(
                            contacts: .init(our_pubkey: our_pubkey), mutelist_manager: mutelist_manager,
                            profiles: profiles,
                            dms: .init(our_pubkey: our_pubkey),
+                           invites: [],
+                           dm_sessions: [],
                            previews: .init(),
                            zaps: .init(our_pubkey: our_pubkey),
                            lnurls: .init(),
