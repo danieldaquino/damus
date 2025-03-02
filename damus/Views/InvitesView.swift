@@ -9,9 +9,9 @@ struct InvitesView: View {
     @State private var isCreatingInvite: Bool = false
     @State private var newInviteLabel: String = ""
     @State private var newInviteMaxUses: String = ""
-    @State private var showingQRCode: Bool = false
-    @State private var selectedInviteURL: String = ""
     @State private var showingQRScanner = false
+    @State private var inviteToShow: Invite? = nil
+    @State private var qrCodeURL: QRCodeURL? = nil
     
     var body: some View {
         ScrollView {
@@ -52,31 +52,38 @@ struct InvitesView: View {
                         .font(.title2)
                         .fontWeight(.semibold)
                     
-                    // Display existing invites
-                    if let publicInvite = publicInvite {
-                        InviteCardView(
-                            invite: publicInvite,
-                            onShowQR: {
-                                selectedInviteURL = publicInvite.getUrl()
-                                showingQRCode = true
-                            },
-                            onCopy: {
-                                UIPasteboard.general.string = publicInvite.getUrl()
-                            }
-                        )
-                    }
-                    
-                    if let privateInvite = privateInvite {
-                        InviteCardView(
-                            invite: privateInvite,
-                            onShowQR: {
-                                selectedInviteURL = privateInvite.getUrl()
-                                showingQRCode = true
-                            },
-                            onCopy: {
-                                UIPasteboard.general.string = privateInvite.getUrl()
-                            }
-                        )
+                    if damus_state.keypair.privkey == nil {
+                        Text("Private key not present")
+                            .foregroundColor(.secondary)
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .background(Color(.secondarySystemBackground))
+                            .cornerRadius(10)
+                    } else {
+                        // Display existing invites
+                        if let publicInvite = publicInvite {
+                            InviteCardView(
+                                invite: publicInvite,
+                                onShowQR: {
+                                    qrCodeURL = QRCodeURL(url: publicInvite.getUrl(), label: publicInvite.label ?? "Public Invite")
+                                },
+                                onCopy: {
+                                    UIPasteboard.general.string = publicInvite.getUrl()
+                                }
+                            )
+                        }
+                        
+                        if let privateInvite = privateInvite {
+                            InviteCardView(
+                                invite: privateInvite,
+                                onShowQR: {
+                                    qrCodeURL = QRCodeURL(url: privateInvite.getUrl(), label: privateInvite.label ?? "Private Invite")
+                                },
+                                onCopy: {
+                                    UIPasteboard.general.string = privateInvite.getUrl()
+                                }
+                            )
+                        }
                     }
                 }
                 .padding(.horizontal)
@@ -85,18 +92,23 @@ struct InvitesView: View {
         .onAppear {
             loadInvites()
         }
-        .sheet(isPresented: $showingQRCode) {
-            InviteQRCodeView(url: selectedInviteURL)
+        .sheet(item: $qrCodeURL) { qrCode in
+            InviteQRCodeView(url: qrCode.url, label: qrCode.label)
         }
     }
     
     private func loadInvites() {
+        // Only load invites if private key is present
+        guard damus_state.keypair.privkey != nil else {
+            return
+        }
+        
         // TODO: Load invites from storage
         // For now, we'll just create sample invites for testing
         do {
             if let keypair = damus_state.keypair.to_full() {
                 publicInvite = try Invite.createNew(inviter: keypair.pubkey, label: "Public Invite")
-                privateInvite = try Invite.createNew(inviter: keypair.pubkey, label: "Private Invite", maxUses: 1)
+                privateInvite = try Invite.createNew(inviter: keypair.pubkey, label: "Private Invite")
             }
         } catch {
             print("Error creating sample invites: \(error)")
@@ -177,15 +189,13 @@ struct CreateInviteView: View {
 
 struct InviteQRCodeView: View {
     let url: String
+    let label: String
     
     var body: some View {
         VStack {
-            // Debug text to see the exact URL
-            Text("URL: \"\(url)\"")
-                .font(.system(.caption, design: .monospaced))
-                .padding()
-                .background(Color.gray.opacity(0.2))
-                .cornerRadius(5)
+            Text(label)
+                .font(.headline)
+                .padding(.bottom, 8)
             
             Image(uiImage: generateQRCode(from: url))
                 .interpolation(.none)
@@ -194,11 +204,6 @@ struct InviteQRCodeView: View {
                 .frame(width: 200, height: 200)
                 .background(Color.white)
                 .cornerRadius(10)
-            
-            Text(url)
-                .font(.caption)
-                .multilineTextAlignment(.center)
-                .padding()
             
             Button("Copy Link") {
                 UIPasteboard.general.string = url
@@ -209,12 +214,8 @@ struct InviteQRCodeView: View {
     }
     
     private func generateQRCode(from string: String) -> UIImage {
-        // Print the string for debugging
-        print("Generating QR code for: \"\(string)\"")
-        
         // Ensure we have valid data
         guard let data = string.data(using: .utf8) else {
-            print("Failed to encode string to UTF-8 data")
             return UIImage(systemName: "xmark.circle") ?? UIImage()
         }
         
@@ -224,7 +225,6 @@ struct InviteQRCodeView: View {
         
         // Scale the image
         guard let qrImage = qrFilter?.outputImage else {
-            print("Failed to generate QR image")
             return UIImage(systemName: "xmark.circle") ?? UIImage()
         }
         
@@ -235,11 +235,9 @@ struct InviteQRCodeView: View {
         // Convert to UIImage
         let context = CIContext()
         guard let cgImage = context.createCGImage(scaledQrImage, from: scaledQrImage.extent) else {
-            print("Failed to create CGImage")
             return UIImage(systemName: "xmark.circle") ?? UIImage()
         }
         
-        print("Successfully generated QR code")
         return UIImage(cgImage: cgImage)
     }
 }
@@ -312,4 +310,11 @@ struct InviteQRScannerView: View {
             print("Scanning failed: \(error.localizedDescription)")
         }
     }
+}
+
+// Create a simple wrapper struct for the URL string
+struct QRCodeURL: Identifiable {
+    let id = UUID()
+    let url: String
+    let label: String
 } 
