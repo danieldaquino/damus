@@ -10,6 +10,7 @@ struct QRCodeURL: Identifiable {
 
 struct InvitesView: View {
     let damus_state: DamusState
+    
     @State private var inviteLink: String = ""
     @State private var isCreatingInvite: Bool = false
     @State private var newInviteLabel: String = ""
@@ -142,12 +143,6 @@ struct InviteCardView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
-            Text(invite.getUrl())
-                .font(.caption2)
-                .foregroundColor(.secondary)
-                .lineLimit(1)
-                .truncationMode(.middle)
             
             HStack {
                 Spacer()

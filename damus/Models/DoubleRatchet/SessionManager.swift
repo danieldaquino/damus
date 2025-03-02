@@ -31,6 +31,11 @@ class SessionManager {
             return
         }
         
+        // Check if we already have invites before creating defaults
+        if !invites.isEmpty {
+            return
+        }
+        
         do {
             // Create a public invite
             let publicInvite = try Invite.createNew(
@@ -47,6 +52,39 @@ class SessionManager {
                 maxUses: 1
             )
             invites.append(privateInvite)
+            
+            // Set up listeners for the newly created invites
+            for invite in invites {
+                do {
+                    let nostrSubscribe: DoubleRatchet.NostrSubscribe = { filter, callback in
+                        let sub_id = UUID().uuidString
+                        self.pool.subscribe(sub_id: sub_id, filters: [filter], handler: { _, event in
+                            if case .nostr_event(let nostr_response) = event,
+                               case .event(_, let ev) = nostr_response {
+                                callback(ev)
+                            }
+                        })
+                        return { self.pool.unsubscribe(sub_id: sub_id) }
+                    }
+                    
+                    guard let privkey = keypair.privkey else {
+                        throw SessionManagerError.noPrivateKey
+                    }
+                    
+                    _ = try invite.listen(
+                        decryptor: privkey,
+                        nostrSubscribe: nostrSubscribe,
+                        onSession: { [weak self] session, pubkey in
+                            guard let self = self else { return }
+                            self.sessions.append(session)
+                            print("New session established from invite: \(invite.label ?? "unnamed") with \(pubkey?.description ?? "unknown")")
+                            NotificationCenter.default.post(name: NSNotification.Name("NewSessionEstablished"), object: session)
+                        }
+                    )
+                } catch {
+                    print("Error listening for responses to invite \(invite.label ?? "unnamed"): \(error)")
+                }
+            }
         } catch {
             print("Error creating default invites: \(error)")
         }
@@ -129,32 +167,6 @@ class SessionManager {
         sessions.append(session)
         postbox.send(event)
         return session
-    }
-    
-    func listenForInviteResponses(_ invite: Invite, onSession: @escaping (Session, Pubkey?) -> Void) throws -> DoubleRatchet.Unsubscribe {
-        guard let privkey = keypair.privkey else {
-            throw SessionManagerError.noPrivateKey
-        }
-        
-        let nostrSubscribe: DoubleRatchet.NostrSubscribe = { filter, callback in
-            let sub_id = UUID().uuidString
-            self.pool.subscribe(sub_id: sub_id, filters: [filter], handler: { _, event in
-                if case .nostr_event(let nostr_response) = event,
-                   case .event(_, let ev) = nostr_response {
-                    callback(ev)
-                }
-            })
-            return { self.pool.unsubscribe(sub_id: sub_id) }
-        }
-        
-        return try invite.listen(
-            decryptor: privkey,
-            nostrSubscribe: nostrSubscribe,
-            onSession: { [weak self] session, pubkey in
-                self?.sessions.append(session)
-                onSession(session, pubkey)
-            }
-        )
     }
     
     // MARK: - Error Types

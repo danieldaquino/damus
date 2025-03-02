@@ -28,9 +28,26 @@ struct DirectMessagesView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
+                        if !requests {
+                            let sessions = damus_state.session_manager.getSessions() ?? []
+                            ForEach(sessions, id: \.name) { session in
+                                SessionRowView(session: session)
+                                    .padding(.top, 10)
+                                    .onTapGesture {
+                                        // Handle session tap - navigate to session chat
+                                        // You'll need to implement this navigation
+                                    }
+                                
+                                Divider()
+                                    .padding([.top], 10)
+                            }
+                        }
+                        
                         let dms = requests ? model.message_requests : model.friend_dms
                         let filtered_dms = filter_dms(dms: dms)
-                        if filtered_dms.isEmpty, !model.loading {
+                        let sessions = damus_state.session_manager.getSessions() ?? []
+                        let sessionsEmpty = sessions.isEmpty
+                        if filtered_dms.isEmpty && (requests || sessionsEmpty), !model.loading {
                             EmptyTimelineView()
                         } else {
                             ForEach(filtered_dms, id: \.pubkey) { dm in
@@ -128,5 +145,28 @@ struct DirectMessagesView_Previews: PreviewProvider {
     static var previews: some View {
         let ds = test_damus_state
         DirectMessagesView(damus_state: ds, model: ds.dms, settings: ds.settings)
+    }
+}
+
+struct SessionRowView: View {
+    let session: Session
+    
+    var body: some View {
+        HStack {
+            // You can customize this view to show session details
+            VStack(alignment: .leading) {
+                Text(session.name)
+                    .font(.headline)
+                
+                Text("Secure chat")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            Image(systemName: "lock.fill")
+                .foregroundColor(.green)
+        }
     }
 }
