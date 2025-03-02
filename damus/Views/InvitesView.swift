@@ -17,6 +17,8 @@ struct InvitesView: View {
     @State private var newInviteMaxUses: String = ""
     @State private var showingQRScanner = false
     @State private var qrCodeURL: QRCodeURL? = nil
+    @State private var isProcessingInvite = false
+    @State private var inviteError: String? = nil
     
     var body: some View {
         ScrollView {
@@ -36,6 +38,9 @@ struct InvitesView: View {
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
+                            .onChange(of: inviteLink) { newValue in
+                                processInviteLink(newValue)
+                            }
                         
                         Button(action: {
                             showingQRScanner = true
@@ -47,6 +52,21 @@ struct InvitesView: View {
                         .sheet(isPresented: $showingQRScanner) {
                             InviteQRScannerView(inviteLink: $inviteLink, isPresented: $showingQRScanner)
                         }
+                    }
+                    
+                    if isProcessingInvite {
+                        HStack {
+                            ProgressView()
+                                .padding(.trailing, 5)
+                            Text("Processing invite...")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    if let error = inviteError {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .font(.caption)
                     }
                 }
                 .padding(.horizontal)
@@ -106,6 +126,52 @@ struct InvitesView: View {
         }
         .sheet(item: $qrCodeURL) { qrCode in
             InviteQRCodeView(url: qrCode.url, label: qrCode.label)
+        }
+    }
+    
+    private func processInviteLink(_ link: String) {
+        // Reset error state
+        inviteError = nil
+        
+        // Skip empty links
+        guard !link.isEmpty else { return }
+        
+        // Check if the link looks like an invite link
+        guard link.contains("damus.io/invite") || link.contains("relay.damus.io") || link.contains("iris.to") else {
+            return
+        }
+        
+        // Try to parse the invite
+        guard let url = URL(string: link) else {
+            inviteError = "Invalid URL format"
+            return
+        }
+        
+        isProcessingInvite = true
+        
+        Task {
+            do {
+                // Try to import the invite
+                let invite = try damus_state.session_manager.importInviteFromUrl(url)
+                
+                // Accept the invite
+                let session = try await damus_state.session_manager.acceptInvite(invite)
+                
+                // Update UI on main thread
+                await MainActor.run {
+                    isProcessingInvite = false
+                    inviteLink = ""
+                    // Optionally show success message or navigate to a chat view with the new session
+                }
+                
+                print("Successfully accepted invite and created session: \(session.name)")
+            } catch {
+                await MainActor.run {
+                    isProcessingInvite = false
+                    inviteError = "Failed to process invite: \(error.localizedDescription)"
+                    print("Error processing invite: \(error)")
+                }
+            }
         }
     }
     
