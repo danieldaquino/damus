@@ -120,7 +120,8 @@ class DamusState: HeadlessDamusState {
             try? pool.add_relay(.nwc(url: nwc.relay))
         }
 
-        let session_manager = SessionManager(keypair: keypair, pool: pool)
+        let postbox = PostBox(pool: pool)
+        let session_manager = SessionManager(keypair: keypair, pool: pool, postbox: postbox)
 
         self.init(
             pool: pool,
@@ -141,7 +142,7 @@ class DamusState: HeadlessDamusState {
             drafts: Drafts(),
             events: EventCache(ndb: ndb),
             bookmarks: BookmarksManager(pubkey: pubkey),
-            postbox: PostBox(pool: pool),
+            postbox: postbox,
             bootstrap_relays: bootstrap_relays,
             replies: ReplyCounter(our_pubkey: pubkey),
             wallet: WalletModel(settings: settings),
@@ -195,7 +196,8 @@ class DamusState: HeadlessDamusState {
         let kp = Keypair(pubkey: empty_pub, privkey: nil)
         let empty_pool = RelayPool(ndb: .empty)
         
-        let session_manager = SessionManager(keypair: kp, pool: empty_pool)
+        let empty_postbox = PostBox(pool: empty_pool)
+        let session_manager = SessionManager(keypair: kp, pool: empty_pool, postbox: empty_postbox)
         
         return DamusState.init(
             pool: empty_pool,
@@ -216,7 +218,7 @@ class DamusState: HeadlessDamusState {
             drafts: Drafts(),
             events: EventCache(ndb: .empty),
             bookmarks: BookmarksManager(pubkey: empty_pub),
-            postbox: PostBox(pool: RelayPool(ndb: .empty)),
+            postbox: empty_postbox,
             bootstrap_relays: [],
             replies: ReplyCounter(our_pubkey: empty_pub),
             wallet: WalletModel(settings: UserSettingsStore()),

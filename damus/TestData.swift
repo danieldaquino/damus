@@ -84,8 +84,11 @@ var test_damus_state: DamusState = ({
     let pool = RelayPool(ndb: ndb)
     let settings = UserSettingsStore()
     
-    // Initialize SessionManager with keypair and pool
-    let session_manager = SessionManager(keypair: test_keypair, pool: pool)
+    // Create postbox first
+    let postbox = PostBox(pool: pool)
+    
+    // Initialize SessionManager with keypair, pool, and postbox
+    let session_manager = SessionManager(keypair: test_keypair, pool: pool, postbox: postbox)
     
     let damus = DamusState(pool: pool,
                            keypair: test_keypair,
@@ -105,7 +108,7 @@ var test_damus_state: DamusState = ({
                            drafts: .init(),
                            events: .init(ndb: ndb),
                            bookmarks: .init(pubkey: our_pubkey),
-                           postbox: .init(pool: pool),
+                           postbox: postbox,
                            bootstrap_relays: .init(),
                            replies: .init(our_pubkey: our_pubkey),
                            wallet: .init(settings: settings),

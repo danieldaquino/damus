@@ -12,10 +12,12 @@ class SessionManager {
     private var sessions: [Session] = []
     private let pool: RelayPool
     private let keypair: Keypair
+    private let postbox: PostBox
     
-    init(keypair: Keypair, pool: RelayPool) {
+    init(keypair: Keypair, pool: RelayPool, postbox: PostBox) {
         self.keypair = keypair
         self.pool = pool
+        self.postbox = postbox
         
         // Create default public and private invites
         createDefaultInvites()
@@ -125,6 +127,7 @@ class SessionManager {
         )
         
         sessions.append(session)
+        postbox.send(event)
         return session
     }
     

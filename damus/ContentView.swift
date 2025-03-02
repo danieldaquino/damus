@@ -678,8 +678,9 @@ struct ContentView: View {
             try? pool.add_relay(.nwc(url: nwc.relay))
         }
 
-        // Create the session manager
-        let session_manager = SessionManager(keypair: keypair, pool: pool)
+        let postbox = PostBox(pool: pool)
+
+        let session_manager = SessionManager(keypair: keypair, pool: pool, postbox: postbox)
 
         self.damus_state = DamusState(pool: pool,
                                       keypair: keypair,
@@ -699,7 +700,7 @@ struct ContentView: View {
                                       drafts: Drafts(),
                                       events: EventCache(ndb: ndb),
                                       bookmarks: BookmarksManager(pubkey: pubkey),
-                                      postbox: PostBox(pool: pool),
+                                      postbox: postbox,
                                       bootstrap_relays: bootstrap_relays,
                                       replies: ReplyCounter(our_pubkey: pubkey),
                                       wallet: WalletModel(settings: settings),
