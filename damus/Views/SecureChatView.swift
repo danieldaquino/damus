@@ -75,7 +75,7 @@ struct SecureChatView: View, KeyboardReadable {
 
     var Header: some View {
         return NavigationLink(value: Route.ProfileByKey(pubkey: sessionRecord.pubkey)) {
-            HStack {
+            HStack(spacing: 8) {
                 ProfilePicView(pubkey: sessionRecord.pubkey, size: 24, highlight: .none, profiles: damus_state.profiles, disable_animation: damus_state.settings.disable_animation)
 
                 VStack(alignment: .leading) {
@@ -89,7 +89,10 @@ struct SecureChatView: View, KeyboardReadable {
                             .foregroundColor(.secondary)
                     }
                 }
+                
+                Spacer()
             }
+            .frame(maxWidth: .infinity)
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -146,7 +149,9 @@ struct SecureChatView: View, KeyboardReadable {
         do {
             let (event, rumor) = try sessionRecord.session.sendText(draft)
             damus_state.postbox.send(event)
-            sessionRecord.events.append(rumor)
+            var myRumor = rumor
+            myRumor.pubkey = damus_state.pubkey
+            sessionRecord.addEvent(myRumor)
             
             // Clear draft
             draft = ""
@@ -167,8 +172,11 @@ struct SecureChatView: View, KeyboardReadable {
                 .opacity((sessionRecord.events.isEmpty ? 1.0 : 0.0))
                 .foregroundColor(.gray)
         }
-        .navigationTitle(NSLocalizedString("Secure Chat", comment: "Navigation title for Double Ratchet secure chat view"))
-        .toolbar { Header }
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Header
+            }
+        }
     }
 }
 

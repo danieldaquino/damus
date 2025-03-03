@@ -12,11 +12,18 @@ class SessionRecord: ObservableObject {
     let pubkey: Pubkey
     let session: Session
     @Published var events: [DoubleRatchet.Rumor]
+    @Published var latest: DoubleRatchet.Rumor?
     
     init(pubkey: Pubkey, session: Session, events: [DoubleRatchet.Rumor]) {
         self.pubkey = pubkey
         self.session = session
         self.events = events
+        self.latest = events.last
+    }
+    
+    func addEvent(_ rumor: DoubleRatchet.Rumor) {
+        events.append(rumor)
+        latest = rumor
     }
 }
 
@@ -62,7 +69,7 @@ class SessionManager {
             let privateInvite = try Invite.createNew(
                 inviter: keypair.pubkey,
                 label: "private",
-                maxUses: 1
+                maxUses: nil
             )
             invites.append(privateInvite)
             
@@ -92,15 +99,14 @@ class SessionManager {
                             if let pubkey = pubkey {
                                 var sessionRecord = SessionRecord(pubkey: pubkey, session: session, events: [])
                                 self.sessions[session.name] = sessionRecord
-                                listenToMessages(session)
+                                listenToMessages(sessionRecord)
                                 print("New session established from invite: \(invite.label ?? "unnamed") with \(pubkey.description)")
                             }
                             
                             // Store the event handler to ensure it's not optimized away
                             let eventHandler = session.onEvent { rumor, eventReceived in
-                                if var record = self.sessions[session.name] {
-                                    record.events.append(rumor)
-                                    self.sessions[session.name] = record
+                                if let record = self.sessions[session.name] {
+                                    record.addEvent(rumor)
                                 }
                             }
                             
@@ -171,13 +177,12 @@ class SessionManager {
         sessions.removeValue(forKey: session.name)
     }
 
-    func listenToMessages(_ session: Session) {
-        let eventHandler = session.onEvent { rumor, eventReceived in
+    func listenToMessages(_ sessionRecord: SessionRecord) {
+        let eventHandler = sessionRecord.session.onEvent { rumor, eventReceived in
             print("Received event: \(rumor)")
-            if var record = self.sessions[session.name] {
-                record.events.append(rumor)
-                self.sessions[session.name] = record
-            }
+            var myRumor = rumor
+            myRumor.pubkey = sessionRecord.pubkey
+            sessionRecord.addEvent(myRumor)
         }
     }
     
@@ -205,7 +210,7 @@ class SessionManager {
         
         let sessionRecord = SessionRecord(pubkey: invite.inviter, session: session, events: [])
         sessions[session.name] = sessionRecord
-        listenToMessages(session)
+        listenToMessages(sessionRecord)
         postbox.send(event)
         return session
     }

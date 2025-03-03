@@ -177,14 +177,12 @@ struct InvitesView: View {
     
     private func createInvite(isPrivate: Bool) {
         do {
-            // Create a new invite
-            let maxUsesInt = isPrivate ? Int(newInviteMaxUses) : nil
+            let maxUsesInt = !newInviteMaxUses.isEmpty ? Int(newInviteMaxUses) : nil
             try damus_state.session_manager.createInvite(
                 label: newInviteLabel.isEmpty ? nil : newInviteLabel,
                 maxUses: maxUsesInt
             )
             
-            // Reset fields and close sheet
             newInviteLabel = ""
             newInviteMaxUses = ""
             isCreatingInvite = false
@@ -201,7 +199,7 @@ struct InviteCardView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(invite.label ?? (invite.maxUses != nil ? "Private Invite" : "Public Invite"))
+            Text(invite.label ?? "Invite")
                 .font(.headline)
             
             if let maxUses = invite.maxUses {

@@ -51,11 +51,11 @@ enum DoubleRatchet {
     
     struct Rumor: Codable {
         var id: String
-        let content: String
-        let kind: UInt32
-        let created_at: UInt32
+        var content: String
+        var kind: UInt32
+        var created_at: UInt32
         var tags: [[String]]
-        let pubkey: Pubkey
+        var pubkey: Pubkey
     }
     
     // MARK: - Nostr Hook Functions

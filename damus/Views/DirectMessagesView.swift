@@ -32,9 +32,7 @@ struct DirectMessagesView: View {
                             let sessionRecords = damus_state.session_manager.getSessionRecords()
                             ForEach(Array(sessionRecords.keys), id: \.self) { sessionId in
                                 if let sessionRecord = sessionRecords[sessionId] {
-                                    SessionRowView(session: sessionRecord.session, 
-                                                    pubkey: sessionRecord.pubkey, 
-                                                    damus_state: damus_state)
+                                    SessionRowView(sessionRecord: sessionRecord, damus_state: damus_state)
                                         .padding(.top, 10)
                                         .onTapGesture {
                                             // Navigate to secure chat view
@@ -153,26 +151,37 @@ struct DirectMessagesView_Previews: PreviewProvider {
 }
 
 struct SessionRowView: View {
-    let session: Session
-    let pubkey: Pubkey
     let damus_state: DamusState
+    @ObservedObject var sessionRecord: SessionRecord
+    
+    init(sessionRecord: SessionRecord, damus_state: DamusState) {
+        self.sessionRecord = sessionRecord
+        self.damus_state = damus_state
+    }
     
     var body: some View {
         HStack {
-            ProfilePicView(pubkey: pubkey, 
+            ProfilePicView(pubkey: sessionRecord.pubkey, 
                           size: 32, 
                           highlight: .none, 
                           profiles: damus_state.profiles, 
                           disable_animation: damus_state.settings.disable_animation)
                 .padding(.trailing, 8)
             
-            VStack(alignment: .leading) {
-                ProfileName(pubkey: pubkey, damus: damus_state, show_nip5_domain: false)
+            VStack(alignment: .leading, spacing: 2) {
+                ProfileName(pubkey: sessionRecord.pubkey, damus: damus_state, show_nip5_domain: false)
                     .font(.headline)
                 
-                Text("Secure chat")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                if let latest = sessionRecord.latest {
+                    Text(latest.content)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                } else {
+                    Text("Secure chat")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
             }
             
             Spacer()
