@@ -46,6 +46,7 @@ enum Route: Hashable {
     case Wallet(wallet: WalletModel)
     case WalletScanner(result: Binding<WalletScanResult>)
     case FollowersYouKnow(friendedFollowers: [Pubkey], followers: FollowersModel)
+    case SecureChat(sessionRecord: SessionRecord)
 
     @ViewBuilder
     func view(navigationCoordinator: NavigationCoordinator, damusState: DamusState) -> some View {
@@ -127,6 +128,8 @@ enum Route: Hashable {
             FollowersYouKnowView(damus_state: damusState, friended_followers: friendedFollowers, followers: followers)
         case .Script(let load_model):
             LoadScript(pool: damusState.pool, model: load_model)
+        case .SecureChat(let sessionRecord):
+            SecureChatView(damus_state: damusState, sessionRecord: sessionRecord)
         }
     }
 
@@ -231,6 +234,10 @@ enum Route: Hashable {
         case .Script(let model):
             hasher.combine("script")
             hasher.combine(model.data.count)
+        case .SecureChat(let sessionRecord):
+            hasher.combine("secureChat")
+            hasher.combine(sessionRecord.session.name)
+            hasher.combine(sessionRecord.pubkey.id.bytes)
         }
     }
 }

@@ -1666,6 +1666,9 @@
 		E04A37C62B544F090029650D /* URIParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = E04A37C52B544F090029650D /* URIParsing.swift */; };
 		E06336AA2B75832100A88E6B /* ImageMetadataTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = E06336A92B75832100A88E6B /* ImageMetadataTest.swift */; };
 		E06336AB2B75850100A88E6B /* img_with_location.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = E06336A82B7582E000A88E6B /* img_with_location.jpeg */; };
+		E090B02E2D759E3700C00B2A /* SecureChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E090B02D2D759E3700C00B2A /* SecureChatView.swift */; };
+		E090B02F2D759E3700C00B2A /* SecureChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E090B02D2D759E3700C00B2A /* SecureChatView.swift */; };
+		E090B0302D759E3700C00B2A /* SecureChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E090B02D2D759E3700C00B2A /* SecureChatView.swift */; };
 		E0C9B7992D73285300270F0B /* InvitesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B7982D73285300270F0B /* InvitesView.swift */; };
 		E0C9B79A2D73285300270F0B /* InvitesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B7982D73285300270F0B /* InvitesView.swift */; };
 		E0C9B79B2D73285300270F0B /* InvitesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0C9B7982D73285300270F0B /* InvitesView.swift */; };
@@ -2542,6 +2545,7 @@
 		E04A37C52B544F090029650D /* URIParsing.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = URIParsing.swift; sourceTree = "<group>"; };
 		E06336A82B7582E000A88E6B /* img_with_location.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = img_with_location.jpeg; sourceTree = "<group>"; };
 		E06336A92B75832100A88E6B /* ImageMetadataTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageMetadataTest.swift; sourceTree = "<group>"; };
+		E090B02D2D759E3700C00B2A /* SecureChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureChatView.swift; sourceTree = "<group>"; };
 		E0C9B7982D73285300270F0B /* InvitesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InvitesView.swift; sourceTree = "<group>"; };
 		E0C9B79C2D73286500270F0B /* Invite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Invite.swift; sourceTree = "<group>"; };
 		E0C9B79D2D73286500270F0B /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
@@ -3141,6 +3145,7 @@
 		4C75EFA227FA576C0006080F /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				E090B02D2D759E3700C00B2A /* SecureChatView.swift */,
 				E0C9B7982D73285300270F0B /* InvitesView.swift */,
 				D74EA08C2D2E26E6002290DD /* ErrorHandling */,
 				D7D68FF72C9E01A80015A515 /* Utils */,
@@ -4631,6 +4636,7 @@
 				D7315A2A2ACDF3B70036E30A /* DamusCacheManager.swift in Sources */,
 				D7373BA82B68974500F7783D /* DamusPurpleNewUserOnboardingView.swift in Sources */,
 				4C7D09682A0AE9B200943473 /* NWCScannerView.swift in Sources */,
+				E090B0302D759E3700C00B2A /* SecureChatView.swift in Sources */,
 				D7CB5D452B116FE800AD4105 /* Contacts+.swift in Sources */,
 				4CA352A42A76AFF3003BB08B /* UpdateStatsNotify.swift in Sources */,
 				D798D21E2B0858BB00234419 /* MigratedTypes.swift in Sources */,
@@ -5354,6 +5360,7 @@
 				82D6FC0C2CD99F7900C925F4 /* EditMetadataView.swift in Sources */,
 				82D6FC0D2CD99F7900C925F4 /* EditPictureControl.swift in Sources */,
 				82D6FC0E2CD99F7900C925F4 /* ProfilePicView.swift in Sources */,
+				E090B02F2D759E3700C00B2A /* SecureChatView.swift in Sources */,
 				82D6FC0F2CD99F7900C925F4 /* ProfileView.swift in Sources */,
 				82D6FC102CD99F7900C925F4 /* ProfileNameView.swift in Sources */,
 				5CB017212D2D985E00A9ED05 /* CoinosButton.swift in Sources */,
@@ -5614,6 +5621,7 @@
 				D73E5EA62C6A97F4007EB227 /* FollowersModel.swift in Sources */,
 				D73E5EA72C6A97F4007EB227 /* SearchHomeModel.swift in Sources */,
 				D73E5EA82C6A97F4007EB227 /* DirectMessageModel.swift in Sources */,
+				E090B02E2D759E3700C00B2A /* SecureChatView.swift in Sources */,
 				D73E5EA92C6A97F4007EB227 /* Report.swift in Sources */,
 				D73E5EAA2C6A97F4007EB227 /* ZapsModel.swift in Sources */,
 				D73E5EAB2C6A97F4007EB227 /* DraftsModel.swift in Sources */,

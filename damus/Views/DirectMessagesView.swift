@@ -37,8 +37,8 @@ struct DirectMessagesView: View {
                                                     damus_state: damus_state)
                                         .padding(.top, 10)
                                         .onTapGesture {
-                                            // Handle session tap - navigate to session chat
-                                            // You'll need to implement this navigation
+                                            // Navigate to secure chat view
+                                            damus_state.nav.push(route: Route.SecureChat(sessionRecord: sessionRecord))
                                         }
                                     
                                     Divider()

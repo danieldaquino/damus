@@ -7,10 +7,16 @@
 
 import Foundation
 
-struct SessionRecord {
+class SessionRecord {
     let pubkey: Pubkey
     let session: Session
-    var events: [NostrEvent]
+    var events: [DoubleRatchet.Rumor]
+    
+    init(pubkey: Pubkey, session: Session, events: [DoubleRatchet.Rumor]) {
+        self.pubkey = pubkey
+        self.session = session
+        self.events = events
+    }
 }
 
 class SessionManager {
@@ -85,13 +91,14 @@ class SessionManager {
                             if let pubkey = pubkey {
                                 var sessionRecord = SessionRecord(pubkey: pubkey, session: session, events: [])
                                 self.sessions[session.name] = sessionRecord
+                                listenToMessages(session)
                                 print("New session established from invite: \(invite.label ?? "unnamed") with \(pubkey.description)")
                             }
                             
                             // Store the event handler to ensure it's not optimized away
                             let eventHandler = session.onEvent { rumor, eventReceived in
                                 if var record = self.sessions[session.name] {
-                                    record.events.append(eventReceived)
+                                    record.events.append(rumor)
                                     self.sessions[session.name] = record
                                 }
                             }
@@ -162,6 +169,16 @@ class SessionManager {
         session.close()
         sessions.removeValue(forKey: session.name)
     }
+
+    func listenToMessages(_ session: Session) {
+        let eventHandler = session.onEvent { rumor, eventReceived in
+            print("Received event: \(rumor)")
+            if var record = self.sessions[session.name] {
+                record.events.append(rumor)
+                self.sessions[session.name] = record
+            }
+        }
+    }
     
     func acceptInvite(_ invite: Invite) async throws -> Session {
         guard let privkey = keypair.privkey else {
@@ -185,8 +202,9 @@ class SessionManager {
             encryptor: privkey
         )
         
-        let sessionRecord = SessionRecord(pubkey: invite.inviter, session: session, events: [event])
+        let sessionRecord = SessionRecord(pubkey: invite.inviter, session: session, events: [])
         sessions[session.name] = sessionRecord
+        listenToMessages(session)
         postbox.send(event)
         return session
     }
