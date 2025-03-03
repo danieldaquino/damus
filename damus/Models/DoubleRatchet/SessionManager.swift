@@ -6,11 +6,12 @@
 //
 
 import Foundation
+import Combine
 
-class SessionRecord {
+class SessionRecord: ObservableObject {
     let pubkey: Pubkey
     let session: Session
-    var events: [DoubleRatchet.Rumor]
+    @Published var events: [DoubleRatchet.Rumor]
     
     init(pubkey: Pubkey, session: Session, events: [DoubleRatchet.Rumor]) {
         self.pubkey = pubkey

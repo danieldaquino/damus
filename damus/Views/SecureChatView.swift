@@ -11,7 +11,7 @@ import Combine
 struct SecureChatView: View, KeyboardReadable {
     let damus_state: DamusState
     @FocusState private var isTextFieldFocused: Bool
-    @State var sessionRecord: SessionRecord
+    @ObservedObject var sessionRecord: SessionRecord
     @State private var draft: String = ""
     
     var Messages: some View {
