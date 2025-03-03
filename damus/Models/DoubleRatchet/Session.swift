@@ -385,7 +385,7 @@ class Session {
         }
     }
     
-    private func sendEvent(rumor: DoubleRatchet.Rumor) throws -> (event: NostrEvent, innerEvent: DoubleRatchet.Rumor) {
+    func sendEvent(rumor: DoubleRatchet.Rumor) throws -> (event: NostrEvent, innerEvent: DoubleRatchet.Rumor) {
         print("\(name) sendEvent")
         if state.theirNextNostrPublicKey.id.isEmpty || state.ourCurrentNostrKey == nil {
             print("\(name) not initiator error")

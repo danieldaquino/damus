@@ -25,10 +25,14 @@ struct SecureChatView: View, KeyboardReadable {
             }
             .dismissKeyboardOnTap()
             .onAppear {
-                scroll_to_end(scroller)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    scroll_to_end(scroller)
+                }
             }
-            .onChange(of: sessionRecord.events.count) { _ in
-                scroll_to_end(scroller, animated: true)
+            .onChange(of: sessionRecord.messages.count) { newCount in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    scroll_to_end(scroller, animated: true)
+                }
             }
             
             Footer
@@ -44,11 +48,11 @@ struct SecureChatView: View, KeyboardReadable {
     
     @ViewBuilder
     func MessagesContent(scroller: ScrollViewProxy) -> some View {
-        ForEach(sessionRecord.events, id: \.id) { event in
+        ForEach(Array(sessionRecord.messages.values.sorted(by: { $0.rumor.created_at < $1.rumor.created_at })), id: \.rumor.id) { messageRecord in
             SecureChatMessageView(
-                rumor: event,
+                messageRecord: messageRecord,
                 damus_state: damus_state,
-                isFromMe: event.pubkey == damus_state.pubkey
+                sessionRecord: sessionRecord
             )
             /*
             .contextMenu {
@@ -149,9 +153,7 @@ struct SecureChatView: View, KeyboardReadable {
         do {
             let (event, rumor) = try sessionRecord.session.sendText(draft)
             damus_state.postbox.send(event)
-            var myRumor = rumor
-            myRumor.pubkey = damus_state.pubkey
-            sessionRecord.addEvent(myRumor)
+            sessionRecord.addEvent(rumor, isFromMe: true)
             
             // Clear draft
             draft = ""
@@ -169,7 +171,7 @@ struct SecureChatView: View, KeyboardReadable {
                 .lineLimit(nil)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
-                .opacity((sessionRecord.events.isEmpty ? 1.0 : 0.0))
+                .opacity((sessionRecord.messages.isEmpty ? 1.0 : 0.0))
                 .foregroundColor(.gray)
         }
         .toolbar {
@@ -181,31 +183,74 @@ struct SecureChatView: View, KeyboardReadable {
 }
 
 struct SecureChatMessageView: View {
-    let rumor: DoubleRatchet.Rumor
+    @ObservedObject var messageRecord: MessageRecord
     let damus_state: DamusState
-    let isFromMe: Bool
+    let sessionRecord: SessionRecord
     
     var body: some View {
         HStack {
-            if isFromMe {
+            if messageRecord.isFromMe {
                 Spacer()
             }
             
-            VStack(alignment: isFromMe ? .trailing : .leading) {
-                Text(rumor.content)
+            VStack(alignment: messageRecord.isFromMe ? .trailing : .leading) {
+                Text(messageRecord.rumor.content)
                     .padding(10)
-                    .background(isFromMe ? Color.blue.opacity(0.2) : Color.gray.opacity(0.2))
+                    .background(messageRecord.isFromMe ? Color.blue.opacity(0.2) : Color.gray.opacity(0.2))
                     .cornerRadius(10)
                 
-                Text(Date(timeIntervalSince1970: TimeInterval(rumor.created_at)).formatted(date: .omitted, time: .shortened))
+                // Display reactions
+                if !messageRecord.reactions.isEmpty {
+                    HStack(spacing: 4) {
+                        ForEach(Array(messageRecord.reactions), id: \.key) { pubkey, reaction in
+                            HStack(spacing: 2) {
+                                Text(reaction)
+                                ProfilePicView(pubkey: pubkey, size: 16, highlight: .none, profiles: damus_state.profiles, disable_animation: damus_state.settings.disable_animation)
+                            }
+                        }
+                    }
+                    .padding(.top, 2)
+                }
+                
+                Text(Date(timeIntervalSince1970: TimeInterval(messageRecord.rumor.created_at)).formatted(date: .omitted, time: .shortened))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
             
-            if !isFromMe {
+            if !messageRecord.isFromMe {
                 Spacer()
             }
         }
         .padding(.vertical, 4)
+        .contextMenu {
+            Button(action: {
+                addReaction("❤️")
+            }) {
+                Label("❤️", systemImage: "heart")
+            }
+            
+            Button(action: {
+                addReaction("👍")
+            }) {
+                Label("👍", systemImage: "hand.thumbsup")
+            }
+        }
+    }
+    
+    func addReaction(_ reaction: String) {
+        do {
+            let (event, _) = try sessionRecord.session.sendEvent(rumor: DoubleRatchet.Rumor(
+                id: UUID().uuidString,
+                content: reaction,
+                kind: 6,
+                created_at: UInt32(Date().timeIntervalSince1970),
+                tags: [["e", messageRecord.rumor.id]],
+                pubkey: damus_state.pubkey
+            ))
+            damus_state.postbox.send(event)
+            messageRecord.reactions[damus_state.pubkey] = reaction
+        } catch {
+            print("Error sending reaction: \(error)")
+        }
     }
 } 

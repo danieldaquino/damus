@@ -154,17 +154,19 @@ struct InvitesView: View {
                 // Try to import the invite
                 let invite = try damus_state.session_manager.importInviteFromUrl(url)
                 
-                // Accept the invite
-                let session = try await damus_state.session_manager.acceptInvite(invite)
+                // Accept the invite and get the session record directly
+                let sessionRecord = try await damus_state.session_manager.acceptInvite(invite)
                 
                 // Update UI on main thread
                 await MainActor.run {
                     isProcessingInvite = false
                     inviteLink = ""
-                    // Optionally show success message or navigate to a chat view with the new session
+                    
+                    // Navigate to the newly created chat using the session record
+                    damus_state.nav.push(route: Route.SecureChat(sessionRecord: sessionRecord))
                 }
                 
-                print("Successfully accepted invite and created session: \(session.name)")
+                print("Successfully accepted invite and created session: \(sessionRecord.session.name)")
             } catch {
                 await MainActor.run {
                     isProcessingInvite = false
@@ -337,7 +339,7 @@ struct InviteQRScannerView: View {
                     
                     Spacer()
                     
-                    CodeScannerView(codeTypes: [.qr], scanMode: .continuous, scanInterval: 1, showViewfinder: true, simulatedData: "https://damus.io/invite/example", shouldVibrateOnSuccess: true) { result in
+                    CodeScannerView(codeTypes: [.qr], scanMode: .continuous, scanInterval: 1, showViewfinder: true, simulatedData: "https://iris.to/#%7B%22inviter%22%3A%224523be58d395b1b196a9b8c82b038b6895cb02b683d0c253a955068dba1facd0%22%2C%22ephemeralKey%22%3A%22f7652acc2637d63312567e45b498c8044da5c7c598c8676bc0bc5c235d50f987%22%2C%22sharedSecret%22%3A%220ca5089881dbc5d6ff7ad49d3b48d7bf911ebada8afd3b28bd8275410741eadb%22%7D", shouldVibrateOnSuccess: true) { result in
                         handleScan(result)
                     }
                     .scaledToFit()

@@ -8,21 +8,51 @@
 import Foundation
 import Combine
 
+class MessageRecord: ObservableObject {
+    let rumor: DoubleRatchet.Rumor
+    let isFromMe: Bool
+    @Published var reactions: [Pubkey: String] = [:]
+    
+    init(event: DoubleRatchet.Rumor, isFromMe: Bool) {
+        self.rumor = event
+        self.isFromMe = isFromMe
+    }
+}
+
 class SessionRecord: ObservableObject {
     let pubkey: Pubkey
     let session: Session
-    @Published var events: [DoubleRatchet.Rumor]
+    @Published var messages: [String: MessageRecord]
     @Published var latest: DoubleRatchet.Rumor?
     
-    init(pubkey: Pubkey, session: Session, events: [DoubleRatchet.Rumor]) {
+    init(pubkey: Pubkey, session: Session) {
         self.pubkey = pubkey
         self.session = session
-        self.events = events
-        self.latest = events.last
+        self.messages = [:]
     }
     
-    func addEvent(_ rumor: DoubleRatchet.Rumor) {
-        events.append(rumor)
+    func addEvent(_ rumor: DoubleRatchet.Rumor, isFromMe: Bool) {
+        if rumor.kind == 6 {
+            let eventTags = rumor.tags.filter { tag in
+                tag.count > 1 && tag[0].string() == "e"
+            }
+            
+            if !eventTags.isEmpty && rumor.content.count > 0 {
+                let reactedEventId = eventTags[0][1].string()
+                print("Received reaction \(rumor.content) for message \(reactedEventId) from \(rumor.pubkey.hex())")
+                
+                if let messageRecord = messages[reactedEventId] {
+                    print("Found message, adding reaction")
+                    messageRecord.reactions[rumor.pubkey] = rumor.content
+                } else {
+                    print("Message not found for reaction")
+                }
+            }
+            return
+        }
+        
+        let messageRecord = MessageRecord(event: rumor, isFromMe: isFromMe)
+        messages[rumor.id] = messageRecord
         latest = rumor
     }
 }
@@ -97,22 +127,12 @@ class SessionManager {
                         onSession: { [weak self] session, pubkey in
                             guard let self = self else { return }
                             if let pubkey = pubkey {
-                                var sessionRecord = SessionRecord(pubkey: pubkey, session: session, events: [])
+                                let sessionRecord = SessionRecord(pubkey: pubkey, session: session)
                                 self.sessions[session.name] = sessionRecord
                                 listenToMessages(sessionRecord)
                                 print("New session established from invite: \(invite.label ?? "unnamed") with \(pubkey.description)")
                             }
-                            
-                            // Store the event handler to ensure it's not optimized away
-                            let eventHandler = session.onEvent { rumor, eventReceived in
-                                if let record = self.sessions[session.name] {
-                                    record.addEvent(rumor)
-                                }
-                            }
-                            
-                            // Keep a reference to the event handler
-                            _ = eventHandler
-                            
+                                                        
                             NotificationCenter.default.post(name: NSNotification.Name("NewSessionEstablished"), object: session)
                         }
                     )
@@ -182,11 +202,11 @@ class SessionManager {
             print("Received event: \(rumor)")
             var myRumor = rumor
             myRumor.pubkey = sessionRecord.pubkey
-            sessionRecord.addEvent(myRumor)
+            sessionRecord.addEvent(myRumor, isFromMe: false)
         }
     }
     
-    func acceptInvite(_ invite: Invite) async throws -> Session {
+    func acceptInvite(_ invite: Invite) async throws -> SessionRecord {
         guard let privkey = keypair.privkey else {
             throw SessionManagerError.noPrivateKey
         }
@@ -208,11 +228,11 @@ class SessionManager {
             encryptor: privkey
         )
         
-        let sessionRecord = SessionRecord(pubkey: invite.inviter, session: session, events: [])
+        let sessionRecord = SessionRecord(pubkey: invite.inviter, session: session)
         sessions[session.name] = sessionRecord
         listenToMessages(sessionRecord)
         postbox.send(event)
-        return session
+        return sessionRecord
     }
     
     // MARK: - Error Types
