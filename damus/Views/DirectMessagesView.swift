@@ -29,24 +29,28 @@ struct DirectMessagesView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         if !requests {
-                            let sessions = damus_state.session_manager.getSessions() ?? []
-                            ForEach(sessions, id: \.name) { session in
-                                SessionRowView(session: session)
-                                    .padding(.top, 10)
-                                    .onTapGesture {
-                                        // Handle session tap - navigate to session chat
-                                        // You'll need to implement this navigation
-                                    }
-                                
-                                Divider()
-                                    .padding([.top], 10)
+                            let sessionRecords = damus_state.session_manager.getSessionRecords()
+                            ForEach(Array(sessionRecords.keys), id: \.self) { sessionId in
+                                if let sessionRecord = sessionRecords[sessionId] {
+                                    SessionRowView(session: sessionRecord.session, 
+                                                    pubkey: sessionRecord.pubkey, 
+                                                    damus_state: damus_state)
+                                        .padding(.top, 10)
+                                        .onTapGesture {
+                                            // Handle session tap - navigate to session chat
+                                            // You'll need to implement this navigation
+                                        }
+                                    
+                                    Divider()
+                                        .padding([.top], 10)
+                                }
                             }
                         }
                         
                         let dms = requests ? model.message_requests : model.friend_dms
                         let filtered_dms = filter_dms(dms: dms)
-                        let sessions = damus_state.session_manager.getSessions() ?? []
-                        let sessionsEmpty = sessions.isEmpty
+                        let sessionRecords = damus_state.session_manager.getSessionRecords()
+                        let sessionsEmpty = sessionRecords.isEmpty
                         if filtered_dms.isEmpty && (requests || sessionsEmpty), !model.loading {
                             EmptyTimelineView()
                         } else {
@@ -150,12 +154,20 @@ struct DirectMessagesView_Previews: PreviewProvider {
 
 struct SessionRowView: View {
     let session: Session
+    let pubkey: Pubkey
+    let damus_state: DamusState
     
     var body: some View {
         HStack {
-            // You can customize this view to show session details
+            ProfilePicView(pubkey: pubkey, 
+                          size: 32, 
+                          highlight: .none, 
+                          profiles: damus_state.profiles, 
+                          disable_animation: damus_state.settings.disable_animation)
+                .padding(.trailing, 8)
+            
             VStack(alignment: .leading) {
-                Text(session.name)
+                ProfileName(pubkey: pubkey, damus: damus_state, show_nip5_domain: false)
                     .font(.headline)
                 
                 Text("Secure chat")

@@ -7,9 +7,15 @@
 
 import Foundation
 
+struct SessionRecord {
+    let pubkey: Pubkey
+    let session: Session
+    var events: [NostrEvent]
+}
+
 class SessionManager {
     private var invites: [Invite] = []
-    private var sessions: [Session] = []
+    private var sessions: [String: SessionRecord] = [:]
     private let pool: RelayPool
     private let keypair: Keypair
     private let postbox: PostBox
@@ -76,8 +82,23 @@ class SessionManager {
                         nostrSubscribe: nostrSubscribe,
                         onSession: { [weak self] session, pubkey in
                             guard let self = self else { return }
-                            self.sessions.append(session)
-                            print("New session established from invite: \(invite.label ?? "unnamed") with \(pubkey?.description ?? "unknown")")
+                            if let pubkey = pubkey {
+                                var sessionRecord = SessionRecord(pubkey: pubkey, session: session, events: [])
+                                self.sessions[session.name] = sessionRecord
+                                print("New session established from invite: \(invite.label ?? "unnamed") with \(pubkey.description)")
+                            }
+                            
+                            // Store the event handler to ensure it's not optimized away
+                            let eventHandler = session.onEvent { rumor, eventReceived in
+                                if var record = self.sessions[session.name] {
+                                    record.events.append(eventReceived)
+                                    self.sessions[session.name] = record
+                                }
+                            }
+                            
+                            // Keep a reference to the event handler
+                            _ = eventHandler
+                            
                             NotificationCenter.default.post(name: NSNotification.Name("NewSessionEstablished"), object: session)
                         }
                     )
@@ -129,17 +150,17 @@ class SessionManager {
     
     // MARK: - Session Management
     
-    func getSessions() -> [Session] {
+    func getSessionRecords() -> [String: SessionRecord] {
         return sessions
     }
     
-    func getSession(with id: String) -> Session? {
-        return sessions.first { $0.name == id }
+    func getSessionRecord(with id: String) -> SessionRecord? {
+        return sessions[id]
     }
     
     func removeSession(_ session: Session) {
         session.close()
-        sessions.removeAll { $0.name == session.name }
+        sessions.removeValue(forKey: session.name)
     }
     
     func acceptInvite(_ invite: Invite) async throws -> Session {
@@ -164,7 +185,8 @@ class SessionManager {
             encryptor: privkey
         )
         
-        sessions.append(session)
+        let sessionRecord = SessionRecord(pubkey: invite.inviter, session: session, events: [event])
+        sessions[session.name] = sessionRecord
         postbox.send(event)
         return session
     }
