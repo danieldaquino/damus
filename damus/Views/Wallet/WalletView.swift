@@ -7,26 +7,8 @@
 
 import SwiftUI
 
-var getBalance: Int64 = 0
-var getTransactions: [NWCTransaction] = []
-
-func nwc_info_success(state: DamusState, resp: FullWalletResponse) {
-    switch resp.response.result {
-    case .get_balance(let balanceResp):
-        getBalance = balanceResp.balance / 1000
-    case .none:
-        return
-    case .some(.pay_invoice(_)):
-        return
-    case .list_transactions(let transactionsResp):
-        getTransactions = transactionsResp.transactions
-    }
-}
-
 struct WalletView: View {
     let damus_state: DamusState
-    @State var balance: Int64 = getBalance
-    @State var transactions: [NWCTransaction] = getTransactions
     @State var show_settings: Bool = false
     @ObservedObject var model: WalletModel
     @ObservedObject var settings: UserSettingsStore
@@ -42,9 +24,9 @@ struct WalletView: View {
             VStack(spacing: 35) {
                 VStack(spacing: 5) {
                     
-                    BalanceView(balance: balance)
+                    BalanceView(balance: model.balance)
                     
-                    TransactionsView(damus_state: damus_state, transactions: transactions)
+                    TransactionsView(damus_state: damus_state, transactions: model.transactions)
                 }
             }
             .navigationTitle(NSLocalizedString("Wallet", comment: "Navigation title for Wallet view"))
@@ -86,7 +68,6 @@ struct WalletView: View {
                         let delay = damus_state.settings.nozaps ? nil : 5.0
 
                         let _ = nwc_balance(url: nwc, pool: damus_state.pool, post: damus_state.postbox, delay: delay, on_flush: flusher)
-                        balance = getBalance
                         return
                     }
                 }
@@ -103,7 +84,6 @@ struct WalletView: View {
                         let delay = damus_state.settings.nozaps ? nil : 5.0
 
                         let _ = nwc_transactions(url: nwc, pool: damus_state.pool, post: damus_state.postbox, delay: delay, on_flush: flusher)
-                        transactions = getTransactions
                         return
                     }
                 }

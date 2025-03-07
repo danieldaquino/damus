@@ -17,6 +17,8 @@ class WalletModel: ObservableObject {
     var settings: UserSettingsStore
     private(set) var previous_state: WalletConnectState
     var initial_percent: Int
+    @Published private(set) var balance: Int64 = 0
+    @Published private(set) var transactions: [NWCTransaction] = []
     
     @Published private(set) var connect_state: WalletConnectState
     
@@ -60,5 +62,18 @@ class WalletModel: ObservableObject {
         notify(.attached_wallet(nwc))
         self.connect_state = .existing(nwc)
         self.previous_state = .existing(nwc)
+    }
+
+    func nwc_info_success(resp: FullWalletResponse) {
+        switch resp.response.result {
+        case .get_balance(let balanceResp):
+            self.balance = balanceResp.balance / 1000
+        case .none:
+            return
+        case .some(.pay_invoice(_)):
+            return
+        case .list_transactions(let transactionsResp):
+            self.transactions = transactionsResp.transactions
+        }
     }
 }

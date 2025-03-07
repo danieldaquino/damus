@@ -270,13 +270,13 @@ class HomeModel: ContactsDelegate {
             
             if resp.response.result_type == .list_transactions {
                 print("nwc transaction success: \(resp.response.result.debugDescription) [\(relay)]")
-                nwc_info_success(state: self.damus_state, resp: resp)
+                damus_state.wallet.nwc_info_success(resp: resp)
                 return
             }
             
             if resp.response.result_type == .get_balance {
                 print("nwc balance success: \(resp.response.result.debugDescription) [\(relay)]")
-                nwc_info_success(state: self.damus_state, resp: resp)
+                damus_state.wallet.nwc_info_success(resp: resp)
                 return
             }
 
