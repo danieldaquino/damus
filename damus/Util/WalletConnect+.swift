@@ -29,12 +29,18 @@ struct PayInvoiceRequest: Codable {
 }
 
 struct TransactionRequest: Codable {
-    let from: UInt64? // starting timestamp in seconds since epoch (inclusive), optional
-    let until: UInt64? // ending timestamp in seconds since epoch (inclusive), optional
-    let limit: Int? // maximum number of invoices to return, optional
-    let offset: Int? // offset of the first invoice to return, optional
-    let unpaid: Bool? // include unpaid invoices, optional, default false
-    let type: String? // "incoming" for invoices, "outgoing" for payments, undefined for both
+    /// Starting timestamp in seconds since epoch (inclusive), optional.
+    let from: UInt64?
+    /// Ending timestamp in seconds since epoch (inclusive), optional.
+    let until: UInt64?
+    /// Maximum number of invoices to return, optional.
+    let limit: Int?
+    /// Offset of the first invoice to return, optional.
+    let offset: Int?
+    /// Include unpaid invoices, optional, default false.
+    let unpaid: Bool?
+    /// "incoming" for invoices, "outgoing" for payments, undefined for both.
+    let type: String?
 }
 
 func make_wallet_connect_request<T>(req: WalletRequest<T>, to_pk: Pubkey, keypair: FullKeypair) -> NostrEvent? {
