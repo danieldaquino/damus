@@ -269,13 +269,13 @@ class HomeModel: ContactsDelegate {
             }
             
             if resp.response.result_type == .list_transactions {
-                print("nwc transaction success: \(resp.response.result.debugDescription) [\(relay)]")
+                Log.info("Received NWC transaction list from %s", for: .nwc, relay.absoluteString)
                 damus_state.wallet.nwc_info_success(resp: resp)
                 return
             }
             
             if resp.response.result_type == .get_balance {
-                print("nwc balance success: \(resp.response.result.debugDescription) [\(relay)]")
+                Log.info("Received NWC balance information from %s", for: .nwc, relay.absoluteString)
                 damus_state.wallet.nwc_info_success(resp: resp)
                 return
             }
