@@ -95,21 +95,8 @@ class HomeModel: ContactsDelegate, RelayPool.Delegate {
         preload_events(state: self.damus_state, events: [ev])
     }
     
-    var pool: RelayPool {
-        return damus_state.pool
-    }
-    
     var dms: DirectMessagesModel {
         return damus_state.dms
-    }
-
-    func has_sub_id_event(sub_id: String, ev_id: NoteId) -> Bool {
-        if !has_event.keys.contains(sub_id) {
-            has_event[sub_id] = Set()
-            return false
-        }
-
-        return has_event[sub_id]!.contains(ev_id)
     }
     
     func setup_debouncer() {
@@ -123,16 +110,6 @@ class HomeModel: ContactsDelegate, RelayPool.Delegate {
     
     /// This is called whenever DamusState gets set. This function is used to load or setup anything we need from the new DamusState
     func load_our_stuff_from_damus_state() {
-        do {
-            try self.loadLatestRelayListFromDamusState()
-        }
-        catch {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 10.0, execute: {
-                if self.damus_state.pool.nip65RelayListEvent == nil {
-                    present_sheet(.error(error.humanReadableError))
-                }
-            })
-        }
         self.load_latest_contact_event_from_damus_state()
         self.load_drafts_from_damus_state()
     }
@@ -153,24 +130,6 @@ class HomeModel: ContactsDelegate, RelayPool.Delegate {
     
     func load_drafts_from_damus_state() {
         damus_state.drafts.load(from: damus_state)
-    }
-    
-    func loadLatestRelayListFromDamusState() throws(RelayListLoadingError) {
-        damus_state.pool.delegate = self
-        guard let latestRelayListEvent = self.getLatestRelayListFromDamusState() else {
-            // We don't have a NIP-65 relay list saved locally. Try to fallback to the legacy contact list event
-            guard let latestContactListEvent = self.getLatestContactEventFromDamusState() else { throw .noRelayList }
-            guard let legacyContactList = try? NIP65.RelayList.fromLegacyContactList(latestContactListEvent) else { throw .relayListParseError }
-            loadOurRelays(state: damus_state, newRelayList: legacyContactList)
-            return
-        }
-        do { try processRelayList(state: damus_state, event: latestRelayListEvent) } catch { throw .relayListParseError }
-    }
-    
-    private func getLatestRelayListFromDamusState() -> NdbNote? {
-        guard let latestRelayListEventId = damus_state.settings.latestRelayListEventIdHex else { return nil }
-        guard let latestRelayListEventId = NoteId(hex: latestRelayListEventId) else { return nil }
-        return damus_state.ndb.lookup_note(latestRelayListEventId)?.unsafeUnownedValue?.to_owned()
     }
     
     enum RelayListLoadingError: Error {
@@ -287,7 +246,8 @@ class HomeModel: ContactsDelegate, RelayPool.Delegate {
             // try? damus_state.drafts.load(wrapped_draft_note: ev, with: damus_state)
             break
         case .relay_list:
-            try? handleRelayListEvent(ev)
+            // TODO: Handle this somewhere
+            break
         }
     }
 
@@ -329,7 +289,7 @@ class HomeModel: ContactsDelegate, RelayPool.Delegate {
 
             // since command results are not returned for ephemeral events,
             // remove the request from the postbox which is likely failing over and over
-            if damus_state.postbox.remove_relayer(relay_id: nwc.relay, event_id: resp.req_id) {
+            if damus_state.networkManager.postbox.remove_relayer(relay_id: nwc.relay, event_id: resp.req_id) {
                 print("nwc: got response, removed \(resp.req_id) from the postbox [\(relay)]")
             } else {
                 print("nwc: \(resp.req_id) not found in the postbox, nothing to remove [\(relay)]")
@@ -1026,48 +986,7 @@ func process_contact_event(state: DamusState, ev: NostrEvent) {
     add_contact_if_friend(contacts: state.contacts, ev: ev)
 }
 
-func processRelayList(state: DamusState, event: NostrEvent) throws(NIP65.NIP65Error) {
-    let newRelayList = try NIP65.RelayList(event: event)
-    loadOurRelays(state: state, newRelayList: newRelayList)
-}
-
-/// Loads a new relay list into the app, according to a NIP-65 relay list.
-///
-/// This function mutates the state of the app.
-/// 
-/// - Parameters:
-///   - state: The state of the app
-///   - newRelayList: The new relay list to be applied
-func loadOurRelays(state: DamusState, newRelayList: NIP65.RelayList) {
-    // The "old" applied relay list is considered to be one of these (in order of preference):
-    //
-    // 1. A NIP-65 relay list
-    // 2. A legacy contact list (kind:3) style relay list
-    // 3. The bootstrap list
-    let appliedOldRelayList = try? NIP65.RelayList(event: state.pool.nip65RelayListEvent) ?? NIP65.RelayList.fromLegacyContactList(state.contacts.event)
-    let oldRelayList = appliedOldRelayList ?? NIP65.RelayList(relays: state.bootstrap_relays)
-
-    var changed = false
-    let new_relay_filters = load_relay_filters(state.pubkey) == nil
-    
-    newRelayList.relays.keys.symmetricDifference(oldRelayList.relays.keys).forEach { relayUrl in
-        changed = true
-        if newRelayList.relays.keys.contains(relayUrl) {
-            let descriptor = RelayDescriptor(url: relayUrl, info: newRelayList.relays[relayUrl]?.rwConfiguration.relayRWConfiguration() ?? .rw)
-            add_new_relay(model_cache: state.relay_model_cache, relay_filters: state.relay_filters, pool: state.pool, descriptor: descriptor, new_relay_filters: new_relay_filters, logging_enabled: state.settings.developer_mode)
-        } else {
-            state.pool.remove_relay(relayUrl)
-        }
-    }
-
-    if changed {
-        save_bootstrap_relays(pubkey: state.pubkey, relays: Array(newRelayList.relays.keys))
-        state.pool.connect()
-        notify(.relays_changed)
-    }
-}
-
-func add_new_relay(model_cache: RelayModelCache, relay_filters: RelayFilters, pool: RelayPool, descriptor: RelayDescriptor, new_relay_filters: Bool, logging_enabled: Bool) {
+func add_new_relay(model_cache: RelayModelCache, relay_filters: RelayFilters, pool: RelayPool, descriptor: RelayPool.RelayDescriptor, new_relay_filters: Bool, logging_enabled: Bool) {
     try? pool.add_relay(descriptor)
     let url = descriptor.url
 
@@ -1338,16 +1257,5 @@ extension NIP65.RelayList {
     
     enum BridgeError: Error {
         case couldNotDecodeRelayListInfo
-    }
-}
-
-extension RelayRWConfiguration {
-    func toNIP65RWConfiguration() -> NIP65.RelayList.RelayItem.RWConfiguration? {
-        switch (self.read, self.write) {
-        case (false, true): return .write
-        case (true, false): return .read
-        case (true, true): return .readWrite
-        default: return nil
-        }
     }
 }

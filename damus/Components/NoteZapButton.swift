@@ -84,7 +84,7 @@ struct NoteZapButton: View {
             print("cancel_zap: we already have a real zap, can't cancel")
             break
         case .pending(let pzap):
-            guard let res = cancel_zap(zap: pzap, box: damus_state.postbox, zapcache: damus_state.zaps, evcache: damus_state.events) else {
+            guard let res = cancel_zap(zap: pzap, box: damus_state.networkManager.postbox, zapcache: damus_state.zaps, evcache: damus_state.events) else {
                 
                 UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                 return
@@ -173,13 +173,13 @@ func initial_pending_zap_state(settings: UserSettingsStore) -> PendingZapState {
     return .external(ExtPendingZapState(state: .fetching_invoice))
 }
 
-func send_zap(damus_state: DamusState, target: ZapTarget, lnurl: String, is_custom: Bool, comment: String?, amount_sats: Int?, zap_type: ZapType) {
+func send_zap(damus_state: DamusState, target: ZapTarget, lnurl: String, is_custom: Bool, comment: String?, amount_sats: Int?, zap_type: ZapType) async {
     guard let keypair = damus_state.keypair.to_full() else {
         return
     }
     
     // Only take the first 10 because reasons
-    let relays = Array(damus_state.pool.our_descriptors.prefix(10))
+    let relays = await Array(damus_state.networkManager.ourRelayDescriptors.prefix(10))
     let content = comment ?? ""
     
     guard let mzapreq = make_zap_request_event(keypair: keypair, content: content, relays: relays, target: target, zap_type: zap_type) else {
