@@ -119,3 +119,229 @@ struct NostrFilter: Codable, Equatable {
         }
     }
 }
+
+// MARK: - Conversion to/from ndb_filter
+
+extension NostrFilter {
+    // TODO: This function is long and repetitive, refactor it into something cleaner.
+    func toNdbFilter() throws(NdbFilterConversionError) -> ndb_filter {
+        var filter: ndb_filter = ndb_filter.init()
+        guard ndb_filter_init(&filter) == 1 else {
+            throw NdbFilterConversionError.failedToInitialize
+        }
+        
+        // Handle `ids` field
+        if let ids = self.ids {
+            guard ndb_filter_start_field(&filter, NDB_FILTER_IDS) == 1 else {
+                ndb_filter_destroy(&filter)
+                throw NdbFilterConversionError.failedToStartField
+            }
+            
+            for noteId in ids {
+                guard let idPointer = noteId.unsafePointer else {
+                    ndb_filter_destroy(&filter)
+                    throw NdbFilterConversionError.failedToAddElement
+                }
+                if ndb_filter_add_id_element(&filter, idPointer) != 1 {
+                    ndb_filter_destroy(&filter)
+                    throw NdbFilterConversionError.failedToAddElement
+                }
+            }
+            
+            ndb_filter_end_field(&filter)
+        }
+        
+        // Handle `kinds` field
+        if let kinds = self.kinds {
+            guard ndb_filter_start_field(&filter, NDB_FILTER_KINDS) == 1 else {
+                ndb_filter_destroy(&filter)
+                throw NdbFilterConversionError.failedToStartField
+            }
+            
+            for kind in kinds {
+                if ndb_filter_add_int_element(&filter, UInt64(kind.rawValue)) != 1 {
+                    ndb_filter_destroy(&filter)
+                    throw NdbFilterConversionError.failedToAddElement
+                }
+            }
+            
+            ndb_filter_end_field(&filter)
+        }
+        
+        // Handle `referenced_ids` field
+        if let referencedIds = self.referenced_ids {
+            guard ndb_filter_start_tag_field(&filter, CChar(UnicodeScalar("e").value)) == 1 else {
+                ndb_filter_destroy(&filter)
+                throw NdbFilterConversionError.failedToStartField
+            }
+            
+            for refId in referencedIds {
+                guard let refPointer = refId.unsafePointer else {
+                    ndb_filter_destroy(&filter)
+                    throw NdbFilterConversionError.failedToAddElement
+                }
+                if ndb_filter_add_id_element(&filter, refPointer) != 1 {
+                    ndb_filter_destroy(&filter)
+                    throw NdbFilterConversionError.failedToAddElement
+                }
+            }
+            
+            ndb_filter_end_field(&filter)
+        }
+
+        // Handle `pubkeys`
+        if let pubkeys = self.pubkeys {
+            guard ndb_filter_start_tag_field(&filter, CChar(UnicodeScalar("p").value)) == 1 else {
+                ndb_filter_destroy(&filter)
+                throw NdbFilterConversionError.failedToStartField
+            }
+
+            for pubkey in pubkeys {
+                guard let pubkeyPointer = pubkey.unsafePointer else {
+                    ndb_filter_destroy(&filter)
+                    throw NdbFilterConversionError.failedToAddElement
+                }
+                if ndb_filter_add_id_element(&filter, pubkeyPointer) != 1 {
+                    ndb_filter_destroy(&filter)
+                    throw NdbFilterConversionError.failedToAddElement
+                }
+            }
+            
+            ndb_filter_end_field(&filter)
+        }
+        
+        // Handle `since`
+        if let since = self.since {
+            if ndb_filter_start_field(&filter, NDB_FILTER_SINCE) != 1 {
+                ndb_filter_destroy(&filter)
+                throw NdbFilterConversionError.failedToAddElement
+            }
+            
+            if ndb_filter_add_int_element(&filter, UInt64(since)) != 1 {
+                ndb_filter_destroy(&filter)
+                throw NdbFilterConversionError.failedToAddElement
+            }
+            
+            ndb_filter_end_field(&filter)
+        }
+
+        // Handle `until`
+        if let until = self.until {
+            if ndb_filter_start_field(&filter, NDB_FILTER_UNTIL) != 1 {
+                ndb_filter_destroy(&filter)
+                throw NdbFilterConversionError.failedToAddElement
+            }
+            
+            if ndb_filter_add_int_element(&filter, UInt64(until)) != 1 {
+                ndb_filter_destroy(&filter)
+                throw NdbFilterConversionError.failedToAddElement
+            }
+            
+            ndb_filter_end_field(&filter)
+        }
+
+        // Handle `limit`
+        if let limit = self.limit {
+            if ndb_filter_start_field(&filter, NDB_FILTER_LIMIT) != 1 {
+                ndb_filter_destroy(&filter)
+                throw NdbFilterConversionError.failedToAddElement
+            }
+            
+            if ndb_filter_add_int_element(&filter, UInt64(limit)) != 1 {
+                ndb_filter_destroy(&filter)
+                throw NdbFilterConversionError.failedToAddElement
+            }
+            
+            ndb_filter_end_field(&filter)
+        }
+        
+        // Handle `authors`
+        if let authors = self.authors {
+            guard ndb_filter_start_field(&filter, NDB_FILTER_AUTHORS) == 1 else {
+                ndb_filter_destroy(&filter)
+                throw NdbFilterConversionError.failedToStartField
+            }
+
+            for author in authors {
+                guard let authorPointer = author.unsafePointer else {
+                    ndb_filter_destroy(&filter)
+                    throw NdbFilterConversionError.failedToAddElement
+                }
+                if ndb_filter_add_id_element(&filter, authorPointer) != 1 {
+                    ndb_filter_destroy(&filter)
+                    throw NdbFilterConversionError.failedToAddElement
+                }
+            }
+            
+            ndb_filter_end_field(&filter)
+        }
+        
+        // Handle `hashtag`
+        if let hashtags = self.hashtag {
+            guard ndb_filter_start_tag_field(&filter, CChar(UnicodeScalar("t").value)) == 1 else {
+                ndb_filter_destroy(&filter)
+                throw NdbFilterConversionError.failedToStartField
+            }
+
+            for tag in hashtags {
+                if ndb_filter_add_str_element(&filter, tag.cString(using: .utf8)) != 1 {
+                    ndb_filter_destroy(&filter)
+                    throw NdbFilterConversionError.failedToAddElement
+                }
+            }
+            ndb_filter_end_field(&filter)
+        }
+        
+        // Handle `parameter`
+        if let parameters = self.parameter {
+            guard ndb_filter_start_tag_field(&filter, CChar(UnicodeScalar("d").value)) == 1 else {
+                ndb_filter_destroy(&filter)
+                throw NdbFilterConversionError.failedToStartField
+            }
+
+            for parameter in parameters {
+                if ndb_filter_add_str_element(&filter, parameter.cString(using: .utf8)) != 1 {
+                    ndb_filter_destroy(&filter)
+                    throw NdbFilterConversionError.failedToAddElement
+                }
+            }
+            ndb_filter_end_field(&filter)
+        }
+
+        // Handle `quotes`
+        if let quotes = self.quotes {
+            guard ndb_filter_start_tag_field(&filter, CChar(UnicodeScalar("q").value)) == 1 else {
+                ndb_filter_destroy(&filter)
+                throw NdbFilterConversionError.failedToStartField
+            }
+            
+            for quote in quotes {
+                guard let quotePointer = quote.unsafePointer else {
+                    ndb_filter_destroy(&filter)
+                    throw NdbFilterConversionError.failedToAddElement
+                }
+                if ndb_filter_add_id_element(&filter, quotePointer) != 1 {
+                    ndb_filter_destroy(&filter)
+                    throw NdbFilterConversionError.failedToAddElement
+                }
+            }
+            
+            ndb_filter_end_field(&filter)
+        }
+
+        // Finalize the filter
+        guard ndb_filter_end(&filter) == 1 else {
+            ndb_filter_destroy(&filter)
+            throw NdbFilterConversionError.failedToFinalize
+        }
+        
+        return filter
+    }
+
+    enum NdbFilterConversionError: Error {
+        case failedToInitialize
+        case failedToStartField
+        case failedToAddElement
+        case failedToFinalize
+    }
+}
