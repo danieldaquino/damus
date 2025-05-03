@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 
 class Relayer {
@@ -23,19 +24,20 @@ class Relayer {
 }
 
 enum OnFlush {
-    case once((PostedEvent) -> Void)
-    case all((PostedEvent) -> Void)
+    case once((EventPostTracker) -> Void)
+    case all((EventPostTracker) -> Void)
 }
 
-class PostedEvent {
+class EventPostTracker {
     let event: NostrEvent
     let skip_ephemeral: Bool
     var remaining: [Relayer]
     let flush_after: Date?
     var flushed_once: Bool
     let on_flush: OnFlush?
+    var send_progress: Future<RelayPool.SendProgress, Never>
 
-    init(event: NostrEvent, remaining: [RelayURL], skip_ephemeral: Bool, flush_after: Date?, on_flush: OnFlush?) {
+    init(event: NostrEvent, remaining: [RelayURL], skip_ephemeral: Bool, flush_after: Date?, on_flush: OnFlush?, send_progress: Future<RelayPool.SendProgress, Never>) {
         self.event = event
         self.skip_ephemeral = skip_ephemeral
         self.flush_after = flush_after
@@ -44,6 +46,7 @@ class PostedEvent {
         self.remaining = remaining.map {
             Relayer(relay: $0, attempts: 0, retry_after: 10.0)
         }
+        self.send_progress = send_progress
     }
 }
 
@@ -55,7 +58,8 @@ enum CancelSendErr {
 
 class PostBox {
     private let pool: RelayPool
-    var events: [NoteId: PostedEvent]
+    var events: [NoteId: EventPostTracker]
+    var promises: [NoteId: (Result<RelayPool.SendProgress, Never>) -> Void] = [:]
 
     init(pool: RelayPool) {
         self.pool = pool
@@ -95,7 +99,11 @@ class PostBox {
                 if relayer.last_attempt == nil ||
                    (now >= (relayer.last_attempt! + Int64(relayer.retry_after))) {
                     print("attempt #\(relayer.attempts) to flush event '\(event.event.content)' to \(relayer.relay) after \(relayer.retry_after) seconds")
-                    flush_event(event, to_relay: relayer)
+                    let send_progress = flush_event(event, to_relay: relayer)
+                    if let promise = self.promises[event.event.id] {
+                        promise(Result.success(send_progress))
+                        self.promises[event.event.id] = nil
+                    }
                 }
             }
         }
@@ -140,11 +148,13 @@ class PostBox {
         return prev_count != after_count
     }
     
-    private func flush_event(_ event: PostedEvent, to_relay: Relayer? = nil) {
+    private func flush_event(_ event: EventPostTracker, to_relay: Relayer? = nil) -> RelayPool.SendProgress {
         var relayers = event.remaining
         if let to_relay {
             relayers = [to_relay]
         }
+        
+        var totalSendProgress: RelayPool.SendProgress = .init()
         
         for relayer in relayers {
             relayer.attempts += 1
@@ -155,25 +165,33 @@ class PostBox {
             } else {
                 print("could not find relay when flushing: \(relayer.relay)")
             }
-            pool.send(.event(event.event), to: [relayer.relay], skip_ephemeral: event.skip_ephemeral)
+            let sendProgress = pool.send(.event(event.event), to: [relayer.relay], skip_ephemeral: event.skip_ephemeral)
+            totalSendProgress = RelayPool.SendProgress(aggregating: [sendProgress])
         }
+        return totalSendProgress
     }
 
-    func send(_ event: NostrEvent, to: [RelayURL]? = nil, skip_ephemeral: Bool = true, delay: TimeInterval? = nil, on_flush: OnFlush? = nil) {
+    func send(_ event: NostrEvent, to: [RelayURL]? = nil, skip_ephemeral: Bool = true, delay: TimeInterval? = nil, on_flush: OnFlush? = nil) -> EventPostTracker? {
         // Don't add event if we already have it
         if events[event.id] != nil {
-            return
+            return nil
         }
 
         let remaining = to ?? pool.our_descriptors.map { $0.url }
         let after = delay.map { d in Date.now.addingTimeInterval(d) }
-        let posted_ev = PostedEvent(event: event, remaining: remaining, skip_ephemeral: skip_ephemeral, flush_after: after, on_flush: on_flush)
-
-        events[event.id] = posted_ev
+        
+        let posted_ev = EventPostTracker(event: event, remaining: remaining, skip_ephemeral: skip_ephemeral, flush_after: after, on_flush: on_flush, send_progress: Future() { promise in
+            self.promises[event.id] = promise
+        })
+        
+        self.events[event.id] = posted_ev
         
         if after == nil {
-            flush_event(posted_ev)
+            self.promises[event.id]?(Result.success(self.flush_event(posted_ev)))
+            self.promises[event.id] = nil
         }
+        
+        return posted_ev
     }
 }
 

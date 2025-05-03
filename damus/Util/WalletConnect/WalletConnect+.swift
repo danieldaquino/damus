@@ -64,9 +64,9 @@ extension WalletConnect {
     ///   - post: The postbox to send events in
     ///   - delay: The delay before actually sending the request to the network
     ///   - on_flush: A callback to call after the event has been flushed to the network
-    /// - Returns: The Nostr Event that was sent to the network, representing the request that was made
+    /// - Returns: A tracker that can be used to get information about the status of delivery
     @discardableResult
-    static func request_balance_information(url: WalletConnectURL, pool: RelayPool, post: PostBox, delay: TimeInterval? = 0.0, on_flush: OnFlush? = nil) -> NostrEvent? {
+    static func request_balance_information(url: WalletConnectURL, pool: RelayPool, post: PostBox, delay: TimeInterval? = 0.0, on_flush: OnFlush? = nil) -> EventPostTracker? {
         let req = WalletConnect.Request.getBalance
         guard let ev = req.to_nostr_event(to_pk: url.pubkey, keypair: url.keypair) else {
             return nil
@@ -74,8 +74,7 @@ extension WalletConnect {
 
         try? pool.add_relay(.nwc(url: url.relay))   // Ensure the NWC relay is connected
         WalletConnect.subscribe(url: url, pool: pool)      // Ensure we are listening to NWC updates from the relay
-        post.send(ev, to: [url.relay], skip_ephemeral: false, delay: delay, on_flush: on_flush)
-        return ev
+        return post.send(ev, to: [url.relay], skip_ephemeral: false, delay: delay, on_flush: on_flush)
     }
 
     /// Sends out a wallet transaction list request to the NWC relay, and ensures that:
@@ -90,9 +89,9 @@ extension WalletConnect {
     ///   - post: The postbox to send events in
     ///   - delay: The delay before actually sending the request to the network
     ///   - on_flush: A callback to call after the event has been flushed to the network
-    /// - Returns: The Nostr Event that was sent to the network, representing the request that was made
+    /// - Returns: A tracker that can be used to get information about the status of delivery
     @discardableResult
-    static func request_transaction_list(url: WalletConnectURL, pool: RelayPool, post: PostBox, delay: TimeInterval? = 0.0, on_flush: OnFlush? = nil) -> NostrEvent? {
+    static func request_transaction_list(url: WalletConnectURL, pool: RelayPool, post: PostBox, delay: TimeInterval? = 0.0, on_flush: OnFlush? = nil) -> EventPostTracker? {
         let req = WalletConnect.Request.getTransactionList(from: nil, until: nil, limit: 10, offset: 0, unpaid: false, type: "")
         guard let ev = req.to_nostr_event(to_pk: url.pubkey, keypair: url.keypair) else {
             return nil
@@ -100,8 +99,7 @@ extension WalletConnect {
 
         try? pool.add_relay(.nwc(url: url.relay))   // Ensure the NWC relay is connected
         WalletConnect.subscribe(url: url, pool: pool)      // Ensure we are listening to NWC updates from the relay
-        post.send(ev, to: [url.relay], skip_ephemeral: false, delay: delay, on_flush: on_flush)
-        return ev
+        return post.send(ev, to: [url.relay], skip_ephemeral: false, delay: delay, on_flush: on_flush)
     }
 
     static func handle_zap_success(state: DamusState, resp: WalletConnect.FullWalletResponse) {

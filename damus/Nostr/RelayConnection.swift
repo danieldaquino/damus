@@ -28,6 +28,7 @@ final class RelayConnection: ObservableObject {
     private var processEvent: (WebSocketEvent) -> ()
     private let relay_url: RelayURL
     var log: RelayLog?
+    var eventSentStatuses: [NoteId: CheckedContinuation<NostrRequest.Response, Never>] = [:]
 
     init(url: RelayURL,
          handleEvent: @escaping (NostrConnectionEvent) -> (),
@@ -98,19 +99,32 @@ final class RelayConnection: ObservableObject {
         socket.send(.string(req))
     }
     
-    func send(_ req: NostrRequestType, callback: ((String) -> Void)? = nil) {
-        switch req {
-        case .typical(let req):
-            guard let req = make_nostr_req(req) else {
-                print("failed to encode nostr req: \(req)")
-                return
+    func send(_ req: NostrRequestType, callback: ((String) -> Void)? = nil) async -> NostrRequest.Response {
+        return await withCheckedContinuation { continuation in
+            switch req {
+            case .typical(let req):
+                guard let rawReq = make_nostr_req(req) else {
+                    print("failed to encode nostr req: \(req)")
+                    continuation.resume(returning: .unimplemented)
+                    return
+                }
+                
+                if case .event(let event) = req {
+                    self.eventSentStatuses[event.id] = continuation
+                    send_raw(rawReq)
+                    callback?(rawReq)
+                }
+                else {
+                    send_raw(rawReq)
+                    callback?(rawReq)
+                    continuation.resume(returning: .unimplemented)
+                }
+                
+            case .custom(let req):
+                send_raw(req)
+                callback?(req)
+                continuation.resume(returning: .unimplemented)
             }
-            send_raw(req)
-            callback?(req)
-            
-        case .custom(let req):
-            send_raw(req)
-            callback?(req)
         }
     }
     
@@ -191,6 +205,10 @@ final class RelayConnection: ObservableObject {
         switch message {
         case .string(let messageString):
             if let ev = decode_nostr_event(txt: messageString) {
+                if case .ok(let commandResult) = ev {
+                    self.eventSentStatuses[commandResult.event_id]?.resume(returning: .event(commandResult))
+                    self.eventSentStatuses[commandResult.event_id] = nil
+                }
                 DispatchQueue.main.async {
                     self.handleEvent(.nostr_event(ev))
                 }

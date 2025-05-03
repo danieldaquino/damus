@@ -68,4 +68,19 @@ enum NostrRequest {
         return !is_write
     }
     
+    enum Response {
+        /// The response for posting an event
+        case event(CommandResult)
+        /// Placeholder for responses that have not been implemented
+        case unimplemented
+        
+        var isOk: Bool {
+            switch self {
+            case .event(let commandResult):
+                return commandResult.ok
+            case .unimplemented:
+                return false
+            }
+        }
+    }
 }

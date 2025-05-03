@@ -107,8 +107,30 @@ struct WalletView: View {
         
         let delay = 0.0     // We don't need a delay when fetching a transaction list or balance
 
-        WalletConnect.request_transaction_list(url: nwc, pool: damus_state.nostrNetwork.pool, post: damus_state.nostrNetwork.postbox, delay: delay, on_flush: flusher)
-        WalletConnect.request_balance_information(url: nwc, pool: damus_state.nostrNetwork.pool, post: damus_state.nostrNetwork.postbox, delay: delay, on_flush: flusher)
+        Task {
+            let randomTrackingNumber = Int.random(in: 0..<10000)
+            guard let tracker = WalletConnect.request_balance_information(url: nwc, pool: damus_state.nostrNetwork.pool, post: damus_state.nostrNetwork.postbox, delay: delay, on_flush: flusher) else {
+                Log.info("WalletView: (%d) Balance request not sent to the network!", for: .nwc, randomTrackingNumber)
+                return
+            }
+            Log.debug("WalletView: (%d) Waiting for balance request to be sent to the network...", for: .nwc, randomTrackingNumber)
+            let send_progress = await tracker.send_progress.value
+            Log.debug("WalletView: (%d) sending balance request to the network...", for: .nwc, randomTrackingNumber)
+            let response = await send_progress.waitAll()
+            Log.debug("WalletView: (%d) sent balance request to the network! OK status: %d out of %d", for: .nwc, randomTrackingNumber, response.values.filter({ $0.isOk }).count, response.values.count)
+        }
+        Task {
+            let randomTrackingNumber = Int.random(in: 0..<10000)
+            guard let tracker = WalletConnect.request_transaction_list(url: nwc, pool: damus_state.nostrNetwork.pool, post: damus_state.nostrNetwork.postbox, delay: delay, on_flush: flusher) else {
+                Log.info("WalletView: (%d) Transaction list request not sent to the network!", for: .nwc, randomTrackingNumber)
+                return
+            }
+            Log.debug("WalletView: (%d) Waiting for transaction list request to be sent to the network...", for: .nwc, randomTrackingNumber)
+            let send_progress = await tracker.send_progress.value
+            Log.debug("WalletView: (%d) sending transaction list request to the network...", for: .nwc, randomTrackingNumber)
+            let response = await send_progress.waitAll()
+            Log.debug("WalletView: (%d) sent transaction list request to the network! OK status: %d out of %d", for: .nwc, randomTrackingNumber, response.values.filter({ $0.isOk }).count, response.values.count)
+        }
         return
     }
 }

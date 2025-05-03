@@ -7,6 +7,7 @@
 
 import Foundation
 import Network
+import Combine
 
 struct RelayHandler {
     let sub_id: String
@@ -300,10 +301,12 @@ class RelayPool {
         }
     }
 
-    func send_raw(_ req: NostrRequestType, to: [RelayURL]? = nil, skip_ephemeral: Bool = true) {
+    func send_raw(_ req: NostrRequestType, to: [RelayURL]? = nil, skip_ephemeral: Bool = true) -> SendProgress {
         let relays = to.map{ get_relays($0) } ?? self.relays
 
         self.send_raw_to_local_ndb(req)     // Always send Nostr events and data to NostrDB for a local copy
+        
+        var sendProgress = SendProgress()
 
         for relay in relays {
             if req.is_read && !(relay.descriptor.info.canRead) {
@@ -323,14 +326,20 @@ class RelayPool {
                 continue
             }
             
-            relay.connection.send(req, callback: { str in
-                self.message_sent_function?((str, relay))
+            sendProgress.add(relay: relay.id, future: Future() { promise in
+                Task {
+                    let result = await relay.connection.send(req, callback: { str in
+                        self.message_sent_function?((str, relay))
+                    })
+                    promise(Result.success(result))
+                }
             })
         }
+        return sendProgress
     }
 
-    func send(_ req: NostrRequest, to: [RelayURL]? = nil, skip_ephemeral: Bool = true) {
-        send_raw(.typical(req), to: to, skip_ephemeral: skip_ephemeral)
+    func send(_ req: NostrRequest, to: [RelayURL]? = nil, skip_ephemeral: Bool = true) -> SendProgress {
+        return send_raw(.typical(req), to: to, skip_ephemeral: skip_ephemeral)
     }
 
     func get_relays(_ ids: [RelayURL]) -> [Relay] {
