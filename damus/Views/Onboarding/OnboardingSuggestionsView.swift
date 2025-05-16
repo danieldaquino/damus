@@ -30,6 +30,11 @@ struct OnboardingSuggestionsView: View {
     var body: some View {
         NavigationView {
             TabView(selection: $current_page) {
+                InterestSelectionView(model: model, next_page: self.next_page)
+                    .navigationTitle(NSLocalizedString("Select your interests", comment: "Title for a screen asking the user for interests"))
+                    .navigationBarTitleDisplayMode(.inline)
+                    .tag(0)
+                
                 SuggestedUsersPageView(model: model, next_page: self.next_page)
                     .navigationTitle(NSLocalizedString("Who to Follow", comment: "Title for a screen displaying suggestions of who to follow"))
                     .navigationBarTitleDisplayMode(.inline)
@@ -41,7 +46,7 @@ struct OnboardingSuggestionsView: View {
                     })
                     .accessibilityIdentifier(AppAccessibilityIdentifiers.onboarding_sheet_skip_button.rawValue)
                     )
-                    .tag(0)
+                    .tag(1)
                 
                 PostView(
                     action: .posting(.user(model.damus_state.pubkey)),
@@ -66,7 +71,7 @@ struct OnboardingSuggestionsView: View {
                     // See https://github.com/damus-io/damus/issues/1726 for more context and information
                     dismiss()
                 }
-                .tag(1)
+                .tag(2)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
         }

@@ -1517,6 +1517,9 @@
 		D7870BC12AC4750B0080BA88 /* MentionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7870BC02AC4750B0080BA88 /* MentionView.swift */; };
 		D7870BC32AC47EBC0080BA88 /* EventLoaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7870BC22AC47EBC0080BA88 /* EventLoaderView.swift */; };
 		D789D1202AFEFBF20083A7AB /* secp256k1 in Frameworks */ = {isa = PBXBuildFile; productRef = D789D11F2AFEFBF20083A7AB /* secp256k1 */; };
+		D78BA6652DD7DFB9000AE62C /* InterestSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D78BA6642DD7DFB9000AE62C /* InterestSelectionView.swift */; };
+		D78BA6662DD7DFB9000AE62C /* InterestSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D78BA6642DD7DFB9000AE62C /* InterestSelectionView.swift */; };
+		D78BA6672DD7DFB9000AE62C /* InterestSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D78BA6642DD7DFB9000AE62C /* InterestSelectionView.swift */; };
 		D78CD5982B8990300014D539 /* DamusAppNotificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D78CD5972B8990300014D539 /* DamusAppNotificationView.swift */; };
 		D78DB8592C1CE9CA00F0AB12 /* SwipeActions in Frameworks */ = {isa = PBXBuildFile; productRef = D78DB8582C1CE9CA00F0AB12 /* SwipeActions */; };
 		D78DB85B2C20FE5000F0AB12 /* VectorMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = D78DB85A2C20FE4F00F0AB12 /* VectorMath.swift */; };
@@ -2545,6 +2548,7 @@
 		D78525242A7B2EA4002FA637 /* NoteContentViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteContentViewTests.swift; sourceTree = "<group>"; };
 		D7870BC02AC4750B0080BA88 /* MentionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentionView.swift; sourceTree = "<group>"; };
 		D7870BC22AC47EBC0080BA88 /* EventLoaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventLoaderView.swift; sourceTree = "<group>"; };
+		D78BA6642DD7DFB9000AE62C /* InterestSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterestSelectionView.swift; sourceTree = "<group>"; };
 		D78CD5972B8990300014D539 /* DamusAppNotificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DamusAppNotificationView.swift; sourceTree = "<group>"; };
 		D78DB85A2C20FE4F00F0AB12 /* VectorMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorMath.swift; sourceTree = "<group>"; };
 		D78DB85E2C20FED300F0AB12 /* ChatBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubbleView.swift; sourceTree = "<group>"; };
@@ -4139,6 +4143,7 @@
 				F71694F12A67314D001F4053 /* SuggestedUserView.swift */,
 				F71694EB2A662292001F4053 /* SuggestedUsersViewModel.swift */,
 				F71694ED2A6624F9001F4053 /* suggested_users.json */,
+				D78BA6642DD7DFB9000AE62C /* InterestSelectionView.swift */,
 			);
 			path = Onboarding;
 			sourceTree = "<group>";
@@ -4645,6 +4650,7 @@
 				4C7D09602A098C5D00943473 /* WalletView.swift in Sources */,
 				4CB8838F296F781C00DC99E7 /* ReactionsView.swift in Sources */,
 				B5C60C202B530D5100C5ECA7 /* MuteItem.swift in Sources */,
+				D78BA6652DD7DFB9000AE62C /* InterestSelectionView.swift in Sources */,
 				4C75EFB328049D640006080F /* NostrEvent.swift in Sources */,
 				4C32B9582A9AD44700DC3548 /* VeriferOptions.swift in Sources */,
 				D74AAFC22B153395006CF0F4 /* HeadlessDamusState.swift in Sources */,
@@ -5339,6 +5345,7 @@
 				82D6FB972CD99F7900C925F4 /* ZapsModel.swift in Sources */,
 				82D6FB982CD99F7900C925F4 /* DraftsModel.swift in Sources */,
 				82D6FB992CD99F7900C925F4 /* NotificationsModel.swift in Sources */,
+				D78BA6662DD7DFB9000AE62C /* InterestSelectionView.swift in Sources */,
 				82D6FB9A2CD99F7900C925F4 /* ImageUploadModel.swift in Sources */,
 				82D6FB9B2CD99F7900C925F4 /* MutedThreadsManager.swift in Sources */,
 				82D6FB9C2CD99F7900C925F4 /* WalletModel.swift in Sources */,
@@ -5995,6 +6002,7 @@
 				5C05675A2C8FBDE70073F23A /* NDBSearchView.swift in Sources */,
 				D703D76E2C670B4900A400EA /* NdbTagsIterator.swift in Sources */,
 				D703D7A02C670E1500A400EA /* take.c in Sources */,
+				D78BA6672DD7DFB9000AE62C /* InterestSelectionView.swift in Sources */,
 				D703D7692C670B2600A400EA /* Block.swift in Sources */,
 				D703D77D2C670C0300A400EA /* FlatbuffersErrors.swift in Sources */,
 				D703D7A62C670E5200A400EA /* builder.c in Sources */,
