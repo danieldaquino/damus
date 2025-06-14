@@ -75,12 +75,11 @@ class WalletModel: ObservableObject {
     /// 
     /// - Parameter response: The NWC response received from the network
     func handle_nwc_response(response: WalletConnect.FullWalletResponse) {
-        switch response.response.result {
+        guard let result = response.response.result else { return }
+        switch result {
         case .get_balance(let balanceResp):
             self.balance = balanceResp.balance / 1000
-        case .none:
-            return
-        case .some(.pay_invoice(_)):
+        case .pay_invoice(_):
             return
         case .list_transactions(let transactionsResp):
             self.transactions = transactionsResp.transactions
