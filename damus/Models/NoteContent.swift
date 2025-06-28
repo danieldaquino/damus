@@ -80,6 +80,14 @@ func render_immediately_available_note_content(ndb: Ndb, ev: NostrEvent, profile
 
 actor ContentRenderer {
     func render_note_content(ndb: Ndb, ev: NostrEvent, profiles: Profiles, keypair: Keypair) async -> NoteArtifacts {
+        if ev.known_kind == .dm {
+            // Currently NostrDB does not seem to handle encryption/decryption of DMs.
+            // Since NostrDB now controls the block parsing process and fetches note contents directly from the database,
+            // it is not trivial to fix it from the Swift side — it will require either a fix from the nostrdb side or
+            // further work to get the Swift code and C code to work in conjunction.
+            // Return the unparsed decrypted content for now as a palliative temporary fix.
+            return .separated(.just_content(ev.get_content(keypair)))
+        }
         guard let result = try? await ndb.waitFor(noteId: ev.id, timeout: 10) else {
             return .separated(.just_content(ev.get_content(keypair)))
         }
