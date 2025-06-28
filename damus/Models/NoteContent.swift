@@ -67,26 +67,64 @@ func note_artifact_is_separated(kind: NostrKind?) -> Bool {
 }
 
 func render_immediately_available_note_content(ndb: Ndb, ev: NostrEvent, profiles: Profiles, keypair: Keypair) -> NoteArtifacts {
-    guard let blocks = ev.blocks(ndb: ndb) else {
-        return .separated(.just_content(ev.get_content(keypair)))
-    }
-
     if ev.known_kind == .longform {
         return .longform(LongformContent(ev.content))
+    }
+    
+    // Special handling for DMs - decrypt first, then parse manually
+    if ev.known_kind == .dm {
+        let decryptedContent = ev.get_content(keypair)
+        if let parsedBlocks = parse_decrypted_content(content: decryptedContent, note: ev) {
+            return .separated(render_blocks(blocks: parsedBlocks, profiles: profiles, note: ev, can_hide_last_previewable_refs: true))
+        }
+        return .separated(.just_content(decryptedContent))
+    }
+    
+    // For regular notes, use existing blocks from NDB
+    guard let blocks = ev.blocks(ndb: ndb) else {
+        return .separated(.just_content(ev.get_content(keypair)))
     }
     
     return .separated(render_blocks(blocks: blocks.unsafeUnownedValue, profiles: profiles, note: ev, can_hide_last_previewable_refs: true))
 }
 
+// Parse decrypted content using ndb_parse_content C function
+func parse_decrypted_content(content: String, note: NostrEvent) -> UnsafePointer<ndb_blocks>? {
+    // Allocate buffer as done in the C function
+    guard let buffer = malloc(2<<18) else {
+        return nil
+    }
+    
+    var blocks: UnsafeMutablePointer<ndb_blocks>? = nil
+    
+    let success = content.withCString { contentPtr -> Bool in
+        let contentLen = content.utf8.count
+        return ndb_parse_content(
+            buffer.assumingMemoryBound(to: UInt8.self),
+            contentLen,
+            contentPtr,
+            contentLen,
+            &blocks
+        )
+    }
+    
+    if !success || blocks == nil {
+        free(buffer)
+        return nil
+    }
+    
+    // Set the owned flag as in the C code
+    blocks!.pointee.flags |= NDB_BLOCK_FLAG_OWNED
+    
+    return UnsafePointer(blocks!)
+}
+
 actor ContentRenderer {
     func render_note_content(ndb: Ndb, ev: NostrEvent, profiles: Profiles, keypair: Keypair) async -> NoteArtifacts {
         if ev.known_kind == .dm {
-            // Currently NostrDB does not seem to handle encryption/decryption of DMs.
-            // Since NostrDB now controls the block parsing process and fetches note contents directly from the database,
-            // it is not trivial to fix it from the Swift side — it will require either a fix from the nostrdb side or
-            // further work to get the Swift code and C code to work in conjunction.
-            // Return the unparsed decrypted content for now as a palliative temporary fix.
-            return .separated(.just_content(ev.get_content(keypair)))
+            // Use the enhanced render_immediately_available_note_content which now handles DMs properly
+            // by decrypting and parsing the content with ndb_parse_content
+            return render_immediately_available_note_content(ndb: ndb, ev: ev, profiles: profiles, keypair: keypair)
         }
         guard let result = try? await ndb.waitFor(noteId: ev.id, timeout: 10) else {
             return .separated(.just_content(ev.get_content(keypair)))
