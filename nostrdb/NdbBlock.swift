@@ -177,7 +177,7 @@ extension NdbBlockGroup {
     ///
     /// **Implementation note:** This would be better as `~Copyable`, but `NdbTxn` does not support `~Copyable` yet.
     struct BlocksMetadata: ~Copyable {
-        private let blocks_ptr: ndb_blocks_ptr
+        fileprivate let blocks_ptr: ndb_blocks_ptr
         private let buffer: UnsafeMutableRawPointer?
         
         init(ptr: OpaquePointer?, buffer: UnsafeMutableRawPointer? = nil) {

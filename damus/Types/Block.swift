@@ -40,6 +40,20 @@ struct Blocks: Equatable {
     let blocks: [Block]
 }
 
+extension Blocks {
+    static func from(ndbBlockGroup: borrowing NdbBlockGroup, tags: TagsSequence?) -> Self? {
+        return ndbBlockGroup.withList({ blockList in
+            guard let blocks: [Block] = try? blockList.reduce(initialResult: Array<Block>(), { i, currentResult, item in
+                guard let block = Block.from(ndbBlock: item, tags: tags) else { return .loopContinue }
+                return .loopReturn(currentResult + [block])
+            }) else {
+                return nil
+            }
+            return Blocks(words: blockList.count, blocks: blocks)
+        })
+    }
+}
+
 extension ndb_str_block {
     func as_str() -> String {
         let buf = UnsafeBufferPointer(start: self.str, count: Int(self.len))
@@ -86,6 +100,27 @@ extension Block {
             self = b
         default:
             return nil
+        }
+    }
+    
+    static func from(ndbBlock: borrowing NdbBlock, tags: TagsSequence?) -> Self? {
+        switch ndbBlock {
+        case .text(let ndb_str_block):
+            return .text(ndb_str_block.as_str())
+        case .mention(let ndb_mention_bech32_block):
+            return Block(bech32: ndb_mention_bech32_block)
+        case .hashtag(let ndb_str_block):
+            return .hashtag(ndb_str_block.as_str())
+        case .url(let ndb_str_block):
+            guard let url = URL(string: ndb_str_block.as_str()) else { return nil }
+            return .url(url)
+        case .invoice(let ndb_invoice_block):
+            return Block(invoice: ndb_invoice_block)
+        case .mention_index(let uInt32):
+            guard let b = Block(index: Int(uInt32), tags: tags) else {
+                return nil
+            }
+            return b
         }
     }
 }
