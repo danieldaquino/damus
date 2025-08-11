@@ -422,6 +422,14 @@ class NoteContentViewTests: XCTestCase {
         
         assertCompatibleTextHasExpectedString(compatibleText: compatibleText, expected: bech)
     }
+    
+    func testLongNprofileMentions() {
+        let note = NdbNote.owned_from_json(json: test_long_nprofile_mention_note)!
+        let blockGroup = try! NdbBlockGroup.parse(event: note, keypair: test_keypair)
+        blockGroup.withList({ blockList in
+            XCTAssertGreaterThanOrEqual(blockList.count, 18)
+        })
+    }
 
 }
 
