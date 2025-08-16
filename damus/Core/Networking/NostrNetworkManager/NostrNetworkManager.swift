@@ -24,7 +24,7 @@ class NostrNetworkManager {
     /// ## Implementation notes
     ///
     /// - This will be marked `private` in the future to prevent other code from accessing the relay pool directly. Code outside this layer should use a higher level interface
-    let pool: RelayPool // TODO: Make this private and make higher level interface for classes outside the NostrNetworkManager
+    private let pool: RelayPool // TODO: Make this private and make higher level interface for classes outside the NostrNetworkManager
     /// A delegate that allows us to interact with the rest of app without introducing hard or circular dependencies
     private var delegate: Delegate
     /// Manages the user's relay list, controls RelayPool's connected relays
@@ -50,6 +50,10 @@ class NostrNetworkManager {
     /// Connects the app to the Nostr network
     func connect() {
         self.userRelayList.connect()
+    }
+    
+    func ping() {
+        self.pool.ping()
     }
 
     func relaysForEvent(event: NostrEvent) -> [RelayURL] {
