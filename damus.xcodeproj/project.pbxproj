@@ -1754,6 +1754,7 @@
 		D7DF58342DFCF18D00E9AD28 /* SendPaymentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7DF58312DFCF18800E9AD28 /* SendPaymentView.swift */; };
 		D7EB00B02CD59C8D00660C07 /* PresentFullScreenItemNotify.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7EB00AF2CD59C8300660C07 /* PresentFullScreenItemNotify.swift */; };
 		D7EB00B12CD59C8D00660C07 /* PresentFullScreenItemNotify.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7EB00AF2CD59C8300660C07 /* PresentFullScreenItemNotify.swift */; };
+		D7EBF8BB2E59022A004EAE29 /* NostrNetworkManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7EBF8BA2E5901F7004EAE29 /* NostrNetworkManagerTests.swift */; };
 		D7EDED152B11776B0018B19C /* LibreTranslateServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AE45AF5297BB2E700C1D842 /* LibreTranslateServer.swift */; };
 		D7EDED162B1177840018B19C /* LNUrls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB883B5297730E400DC99E7 /* LNUrls.swift */; };
 		D7EDED172B1177960018B19C /* TranslationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AAA95C9298DF87B00F3D526 /* TranslationService.swift */; };
@@ -2688,6 +2689,7 @@
 		D7DEEF2E2A8C021E00E0C99F /* NostrEventTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NostrEventTests.swift; sourceTree = "<group>"; };
 		D7DF58312DFCF18800E9AD28 /* SendPaymentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendPaymentView.swift; sourceTree = "<group>"; };
 		D7EB00AF2CD59C8300660C07 /* PresentFullScreenItemNotify.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentFullScreenItemNotify.swift; sourceTree = "<group>"; };
+		D7EBF8BA2E5901F7004EAE29 /* NostrNetworkManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NostrNetworkManagerTests.swift; sourceTree = "<group>"; };
 		D7EDED1B2B1178FE0018B19C /* NoteContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteContent.swift; sourceTree = "<group>"; };
 		D7EDED1D2B11797D0018B19C /* LongformEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongformEvent.swift; sourceTree = "<group>"; };
 		D7EDED202B117DCA0018B19C /* SequenceUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SequenceUtils.swift; sourceTree = "<group>"; };
@@ -3670,6 +3672,7 @@
 		4CE6DEF627F7A08200C66700 /* damusTests */ = {
 			isa = PBXGroup;
 			children = (
+				D7EBF8BA2E5901F7004EAE29 /* NostrNetworkManagerTests.swift */,
 				D7DB1FED2D5AC50F00CF06DA /* NIP44v2EncryptionTests.swift */,
 				D7A0D8742D1FE66A00DCBE59 /* EditPictureControlTests.swift */,
 				E06336A72B7582D600A88E6B /* Assets */,
@@ -5924,6 +5927,7 @@
 				D71DC1EC2A9129C3006E207C /* PostViewTests.swift in Sources */,
 				3AAC7A022A60FE72002B50DF /* LocalizationUtilTests.swift in Sources */,
 				D7CBD1D62B8D509800BFD889 /* DamusPurpleImpendingExpirationTests.swift in Sources */,
+				D7EBF8BB2E59022A004EAE29 /* NostrNetworkManagerTests.swift in Sources */,
 				D7DEEF2F2A8C021E00E0C99F /* NostrEventTests.swift in Sources */,
 				4C8D00D429E3C5D40036AF10 /* NIP19Tests.swift in Sources */,
 				3A30410129AB12AA008A0F29 /* EventGroupViewTests.swift in Sources */,
