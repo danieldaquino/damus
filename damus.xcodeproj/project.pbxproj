@@ -1157,6 +1157,8 @@
 		D723411A2B6864F200E1E135 /* DamusPurpleEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = D72341182B6864F200E1E135 /* DamusPurpleEnvironment.swift */; };
 		D723C38E2AB8D83400065664 /* ContentFilters.swift in Sources */ = {isa = PBXBuildFile; fileRef = D723C38D2AB8D83400065664 /* ContentFilters.swift */; };
 		D724D8272B64B40B00ABE789 /* DamusPurpleAccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D724D8262B64B40B00ABE789 /* DamusPurpleAccountView.swift */; };
+		D72597E42E56AF8A00F893B7 /* Vapor in Frameworks */ = {isa = PBXBuildFile; productRef = D72597E32E56AF8A00F893B7 /* Vapor */; };
+		D72597EA2E56B00600F893B7 /* TestRelay.swift in Sources */ = {isa = PBXBuildFile; fileRef = D72597E92E56B00200F893B7 /* TestRelay.swift */; };
 		D72927AD2BAB515C00F93E90 /* RelayURLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D72927AC2BAB515C00F93E90 /* RelayURLTests.swift */; };
 		D72A2D022AD9C136002AFF62 /* EventViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D72A2CFF2AD9B66B002AFF62 /* EventViewTests.swift */; };
 		D72A2D052AD9C1B5002AFF62 /* MockDamusState.swift in Sources */ = {isa = PBXBuildFile; fileRef = D72A2D042AD9C1B5002AFF62 /* MockDamusState.swift */; };
@@ -2600,6 +2602,7 @@
 		D72341182B6864F200E1E135 /* DamusPurpleEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DamusPurpleEnvironment.swift; sourceTree = "<group>"; };
 		D723C38D2AB8D83400065664 /* ContentFilters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentFilters.swift; sourceTree = "<group>"; };
 		D724D8262B64B40B00ABE789 /* DamusPurpleAccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DamusPurpleAccountView.swift; sourceTree = "<group>"; };
+		D72597E92E56B00200F893B7 /* TestRelay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestRelay.swift; sourceTree = "<group>"; };
 		D72927AC2BAB515C00F93E90 /* RelayURLTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelayURLTests.swift; sourceTree = "<group>"; };
 		D72A2CFF2AD9B66B002AFF62 /* EventViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventViewTests.swift; sourceTree = "<group>"; };
 		D72A2D042AD9C1B5002AFF62 /* MockDamusState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockDamusState.swift; sourceTree = "<group>"; };
@@ -2746,6 +2749,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D72597E42E56AF8A00F893B7 /* Vapor in Frameworks */,
 				D7A343EE2AD0D77C00CED48B /* InlineSnapshotTesting in Frameworks */,
 				D7A343F02AD0D77C00CED48B /* SnapshotTesting in Frameworks */,
 			);
@@ -3670,6 +3674,7 @@
 		4CE6DEF627F7A08200C66700 /* damusTests */ = {
 			isa = PBXGroup;
 			children = (
+				D72597E82E56AFF300F893B7 /* TestRelay */,
 				D7DB1FED2D5AC50F00CF06DA /* NIP44v2EncryptionTests.swift */,
 				D7A0D8742D1FE66A00DCBE59 /* EditPictureControlTests.swift */,
 				E06336A72B7582D600A88E6B /* Assets */,
@@ -4877,6 +4882,14 @@
 			path = NIP51;
 			sourceTree = "<group>";
 		};
+		D72597E82E56AFF300F893B7 /* TestRelay */ = {
+			isa = PBXGroup;
+			children = (
+				D72597E92E56B00200F893B7 /* TestRelay.swift */,
+			);
+			path = TestRelay;
+			sourceTree = "<group>";
+		};
 		D72A2D032AD9C165002AFF62 /* Mocking */ = {
 			isa = PBXGroup;
 			children = (
@@ -5082,6 +5095,7 @@
 			packageProductDependencies = (
 				D7A343ED2AD0D77C00CED48B /* InlineSnapshotTesting */,
 				D7A343EF2AD0D77C00CED48B /* SnapshotTesting */,
+				D72597E32E56AF8A00F893B7 /* Vapor */,
 			);
 			productName = damusTests;
 			productReference = 4CE6DEF327F7A08200C66700 /* damusTests.xctest */;
@@ -5271,6 +5285,7 @@
 				D7C48C092D12DE0C00A3BACF /* XCRemoteSwiftPackageReference "SwiftyCrop" */,
 				D7DB1FE22D5A9AC900CF06DA /* XCRemoteSwiftPackageReference "CryptoSwift" */,
 				3ACF94362DA9A52F00971A4E /* XCRemoteSwiftPackageReference "FaviconFinder" */,
+				D72597E22E56AF8A00F893B7 /* XCRemoteSwiftPackageReference "vapor" */,
 			);
 			productRefGroup = 4CE6DEE427F7A08100C66700 /* Products */;
 			projectDirPath = "";
@@ -5944,6 +5959,7 @@
 				D72A2D022AD9C136002AFF62 /* EventViewTests.swift in Sources */,
 				4CB8839A297322D200DC99E7 /* DMTests.swift in Sources */,
 				D7315A2C2ACDF4DA0036E30A /* DamusCacheManagerTests.swift in Sources */,
+				D72597EA2E56B00600F893B7 /* TestRelay.swift in Sources */,
 				4C9054852A6AEAA000811EEC /* NdbTests.swift in Sources */,
 				75AD872B2AA23A460085EF2C /* Block+Tests.swift in Sources */,
 				E0E024112B7C19C20075735D /* TranslationTests.swift in Sources */,
@@ -7970,6 +7986,14 @@
 				revision = 9fa582f4b36c69c2a55bff5fb3377eb170ae273c;
 			};
 		};
+		D72597E22E56AF8A00F893B7 /* XCRemoteSwiftPackageReference "vapor" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/vapor/vapor";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.115.1;
+			};
+		};
 		D78DB8572C1CE9CA00F0AB12 /* XCRemoteSwiftPackageReference "SwipeActions" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/damus-io/SwipeActions.git";
@@ -8099,6 +8123,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = D70D90962CDED61800CD0534 /* XCRemoteSwiftPackageReference "CodeScanner" */;
 			productName = CodeScanner;
+		};
+		D72597E32E56AF8A00F893B7 /* Vapor */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D72597E22E56AF8A00F893B7 /* XCRemoteSwiftPackageReference "vapor" */;
+			productName = Vapor;
 		};
 		D73E5F752C6A997E007EB227 /* EmojiPicker */ = {
 			isa = XCSwiftPackageProductDependency;
