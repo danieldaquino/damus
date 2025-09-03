@@ -19,7 +19,10 @@ let test_pubkey_2 = Pubkey(Data([0x18, 0x42, 0x95, 0xc7, 0x6d, 0x5f, 0xf9, 0x4e,
 let test_keypair = Keypair(pubkey: test_pubkey, privkey: test_seckey)
 let test_keypair_full = test_keypair.to_full()!
 
-let test_event_holder = EventHolder(events: [], incoming: [test_note])
+@MainActor
+func getTestEventHolder() -> EventHolder {
+    return EventHolder(events: [], incoming: [test_note])
+}
 
 let jack_keypair = Keypair(pubkey: bech32_pubkey_decode("npub1sg6plzptd64u62a878hep2kev88swjh3tw00gjsfl8f237lmu63q0uf63m")!, privkey: nil)
 let test_note =

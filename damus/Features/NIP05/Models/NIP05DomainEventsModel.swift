@@ -18,6 +18,7 @@ class NIP05DomainEventsModel: ObservableObject {
     var loadingTask: Task<Void, Never>?
     let limit: UInt32 = 500
 
+    @MainActor
     init(state: DamusState, domain: String) {
         self.state = state
         self.domain = domain
@@ -70,8 +71,10 @@ class NIP05DomainEventsModel: ObservableObject {
                 var event: NostrEvent? = nil
                 try? borrow { ev in
                     event = ev.toOwned()
-                    guard let txn = NdbTxn(ndb: state.ndb) else { return }
-                    load_profiles(context: "search", load: .from_events(self.events.all_events), damus_state: state, txn: txn)
+                    Task {
+                        guard let txn = NdbTxn(ndb: state.ndb) else { return }
+                        load_profiles(context: "search", load: .from_events(await self.events.all_events), damus_state: state, txn: txn)
+                    }
                 }
                 guard let event else { return }
                 await self.add_event(event)

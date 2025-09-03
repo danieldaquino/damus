@@ -18,6 +18,7 @@ class SearchModel: ObservableObject {
     var listener: Task<Void, Never>? = nil
     let limit: UInt32 = 500
     
+    @MainActor
     init(state: DamusState, search: NostrFilter) {
         self.state = state
         self.search = search
@@ -57,7 +58,7 @@ class SearchModel: ObservableObject {
                     break
                 }
                 guard let txn = NdbTxn(ndb: state.ndb) else { return }
-                load_profiles(context: "search", load: .from_events(self.events.all_events), damus_state: state, txn: txn)
+                await load_profiles(context: "search", load: .from_events(self.events.all_events), damus_state: state, txn: txn)
             }
             self.loading = false
         }

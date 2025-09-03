@@ -87,7 +87,9 @@ class HomeModel: ContactsDelegate {
         DispatchQueue.main.async {
             self.filter_events()
         }
-        events.on_queue = preloader
+        DispatchQueue.main.async {
+            self.events.on_queue = self.preloader
+        }
         //self.events = EventHolder(on_queue: preloader)
     }
     

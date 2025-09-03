@@ -8,10 +8,11 @@
 import Foundation
 
 /// Used for holding back events until they're ready to be displayed
+@MainActor
 class EventHolder: ObservableObject, ScrollQueue {
     private var has_event = Set<NoteId>()
     @Published var events: [NostrEvent]
-    var incoming: [NostrEvent]
+    @Published var incoming: [NostrEvent]
     private(set) var should_queue = false
     var on_queue: ((NostrEvent) -> Void)?
     
@@ -80,19 +81,16 @@ class EventHolder: ObservableObject, ScrollQueue {
             return
         }
         
-        var changed = false
         for event in incoming {
             if insert_uniq_sorted_event_created(events: &events, new_ev: event) {
-                changed = true
-            }
-        }
-        
-        if changed {
-            DispatchQueue.main.async {
-                self.objectWillChange.send()
+                // NO-OP
             }
         }
         
         self.incoming = []
+        
+        DispatchQueue.main.async {
+            self.objectWillChange.send()
+        }
     }
 }

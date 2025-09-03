@@ -16,6 +16,7 @@ class FollowPackModel: ObservableObject {
     var listener: Task<Void, Never>? = nil
     let limit: UInt32 = 500
     
+    @MainActor
     init(damus_state: DamusState) {
         self.damus_state = damus_state
         self.events = EventHolder(on_queue: { ev in

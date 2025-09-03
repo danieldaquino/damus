@@ -20,6 +20,7 @@ class SearchHomeModel: ObservableObject {
     let limit: UInt32 = 500
     //let multiple_events_per_pubkey: Bool = false
     
+    @MainActor
     init(damus_state: DamusState) {
         self.damus_state = damus_state
         self.events = EventHolder(on_queue: { ev in
@@ -69,7 +70,7 @@ class SearchHomeModel: ObservableObject {
         }
         
         guard let txn = NdbTxn(ndb: damus_state.ndb) else { return }
-        load_profiles(context: "universe", load: .from_events(events.all_events), damus_state: damus_state, txn: txn)
+        await load_profiles(context: "universe", load: .from_events(events.all_events), damus_state: damus_state, txn: txn)
     }
     
     @MainActor

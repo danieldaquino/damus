@@ -38,6 +38,7 @@ class ProfileModel: ObservableObject, Equatable {
     
     var conversation_events: Set<NoteId> = Set()
     
+    @MainActor
     init(pubkey: Pubkey, damus: DamusState) {
         self.pubkey = pubkey
         self.damus = damus
@@ -86,7 +87,7 @@ class ProfileModel: ObservableObject, Equatable {
                 }
             }
             guard let txn = NdbTxn(ndb: damus.ndb) else { return }
-            load_profiles(context: "profile", load: .from_events(events.events), damus_state: damus, txn: txn)
+            await load_profiles(context: "profile", load: .from_events(events.events), damus_state: damus, txn: txn)
             await bumpUpProgress()
         }
         profileListener?.cancel()

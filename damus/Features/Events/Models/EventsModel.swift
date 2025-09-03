@@ -21,6 +21,7 @@ class EventsModel: ObservableObject {
         case quotes
     }
 
+    @MainActor
     init(state: DamusState, target: NoteId, kind: NostrKind) {
         self.state = state
         self.target = target
@@ -31,6 +32,7 @@ class EventsModel: ObservableObject {
         })
     }
     
+    @MainActor
     init(state: DamusState, target: NoteId, query: EventsModel.QueryKind) {
         self.state = state
         self.target = target
@@ -41,14 +43,17 @@ class EventsModel: ObservableObject {
         })
     }
     
+    @MainActor
     public static func quotes(state: DamusState, target: NoteId) -> EventsModel {
         EventsModel(state: state, target: target, query: .quotes)
     }
     
+    @MainActor
     public static func reposts(state: DamusState, target: NoteId) -> EventsModel {
         EventsModel(state: state, target: target, kind: .boost)
     }
     
+    @MainActor
     public static func likes(state: DamusState, target: NoteId) -> EventsModel {
         EventsModel(state: state, target: target, kind: .like)
     }
@@ -91,7 +96,7 @@ class EventsModel: ObservableObject {
             }
             DispatchQueue.main.async { self.loading = false }
             guard let txn = NdbTxn(ndb: self.state.ndb) else { return }
-            load_profiles(context: "events_model", load: .from_events(events.all_events), damus_state: state, txn: txn)
+            await load_profiles(context: "events_model", load: .from_events(events.all_events), damus_state: state, txn: txn)
         }
     }
     

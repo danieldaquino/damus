@@ -21,6 +21,7 @@ struct DamusURLHandler {
     ///   - damus_state: The Damus state. May be mutated as part of this function
     ///   - url: The URL to be opened
     /// - Returns: A view to be shown to the user
+    @MainActor
     static func handle_opening_url_and_compute_view_action(damus_state: DamusState, url: URL) async -> ContentView.ViewOpenAction {
         let parsed_url_info = parse_url(url: url)
         
