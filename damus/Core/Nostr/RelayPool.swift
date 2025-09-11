@@ -376,6 +376,13 @@ class RelayPool {
                     return
                 }
                 seen[nev.id, default: Set()].insert(relay_id)
+//                do {
+//                    try ndb.recordSeen(noteId: nev.id, on: relay_id)
+//                }
+//                catch {
+//                    assertionFailure("Failed to record that note id \"\(nev.id.hex())\" was seen on \(relay_id)")
+//                    Log.error("Failed to record that note %s was seen on %s", for: .ndb, nev.id.hex(), relay_id.absoluteString)
+//                }
                 counts[relay_id, default: 0] += 1
                 notify(.update_stats(note_id: nev.id))
             }
