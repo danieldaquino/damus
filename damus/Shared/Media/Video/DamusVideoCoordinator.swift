@@ -64,7 +64,7 @@ final class DamusVideoCoordinator: ObservableObject {
         if let player = self.players[url] {
             return player
         }
-        let player = DamusVideoPlayer(url: url)
+        let player = DamusVideoPlayer(url: url, autoloadItem: false)
         self.players[url] = player
         return player
     }
@@ -113,6 +113,7 @@ final class DamusVideoCoordinator: ObservableObject {
             // - The LIFO stack is better at selecting videos when navigating on the Z axis (e.g. opening and closing full screen covers or sheets), since those sheets operate like a stack as well
             let winning_request = self.full_screen_mode ? self.full_screen_layer_stage_requests.last : self.normal_layer_main_stage_requests.last
             self.focused_video = winning_request?.player
+            self.focused_video?.loadPlayerItem()
             winning_request?.main_stage_granted?()
         }
         Log.info("VIDEO_COORDINATOR: fullscreen layer main stage request stack: %s", for: .video_coordination, full_screen_layer_stage_requests.map({ $0.requestor_id.uuidString }).debugDescription)

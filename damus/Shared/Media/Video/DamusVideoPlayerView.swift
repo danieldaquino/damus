@@ -26,21 +26,36 @@ struct DamusVideoPlayerView: View {
     @State var is_visible: Bool = false {
         didSet {
             if self.is_visible {
-                // We are visible, request main stage
-                video_coordinator.request_main_stage(
-                    DamusVideoCoordinator.MainStageRequest(
-                        requestor_id: self.main_state_requestor_id,
-                        layer_context: self.view_layer,
-                        player: self.model,
-                        main_stage_granted: self.main_stage_granted
-                    )
-                )
+                if self.visibility_tracking_method == .standard {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(1), execute: {
+                        // Are we still visible after a second? If not, don't bother requesting main stage for performance
+                        // Improve scrolling performance by not firing up a video the moment it becomes visible.
+                        if self.is_visible {
+                            self.requestMainStage()
+                        }
+                    })
+                }
+                else {
+                    // For non-timeline videos, we can just play right away
+                    self.requestMainStage()
+                }
             }
             else {
                 // We are no longer visible, give up the main stage
                 video_coordinator.give_up_main_stage(request_id: self.main_state_requestor_id)
             }
         }
+    }
+        
+    private func requestMainStage() {
+        video_coordinator.request_main_stage(
+            DamusVideoCoordinator.MainStageRequest(
+                requestor_id: self.main_state_requestor_id,
+                layer_context: self.view_layer,
+                player: self.model,
+                main_stage_granted: self.main_stage_granted
+            )
+        )
     }
     
     /// The context this video player is in.

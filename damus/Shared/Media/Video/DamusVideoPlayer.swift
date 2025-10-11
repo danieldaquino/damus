@@ -106,15 +106,20 @@ import SwiftUI
     
     // MARK: - Initialization, deinitialization and reinitialization
     
-    public init(url: URL) {
+    public init(url: URL, autoloadItem: Bool = true) {
         self.url = url
         // Initialize with an empty player first
         self.player = AVPlayer()
         self.video_size = nil
         
-        // Creating the player item is an expensive action. Create it on a background thread to avoid performance issues.
+        if autoloadItem {
+            self.loadPlayerItem()
+        }
+    }
+    
+    func loadPlayerItem() {
         Task.detached(priority: TaskPriority.userInitiated) {
-            self.loadPlayerItem(url: url)
+            self.loadPlayerItem(url: self.url)
         }
     }
     
