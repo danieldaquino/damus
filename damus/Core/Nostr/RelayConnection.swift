@@ -217,6 +217,7 @@ final class RelayConnection: ObservableObject {
             // NOTE: Once we switch to the local relay model,
             // we will not need to verify nostr events at this point.
             if let ev = decode_and_verify_nostr_response(txt: messageString) {
+                printPipe("RelayConnection_\(self.relay_url.url.absoluteString)", "RelayPool_\(self.relay_url.url.absoluteString)")
                 await self.handleEvent(.nostr_event(ev))
                 return
             }
@@ -279,4 +280,17 @@ func make_nostr_subscription_req(_ filters: [NostrFilter], sub_id: String) -> St
     }
     req += "]"
     return req
+}
+
+func get_timestamp() -> String {
+    let d = Date()
+    let df = DateFormatter()
+    df.dateFormat = "y-MM-dd H:mm:ss.SSSS"
+
+    return df.string(from: d)
+}
+
+// printPipe("RelayPool", "SubscriptionManager")
+func printPipe(_ sourceNode: String, _ destinationNode: String) {
+    print("STREAM_PIPELINE: \(get_timestamp()),\(sourceNode), \(destinationNode)")
 }

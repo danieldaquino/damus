@@ -317,6 +317,7 @@ actor RelayPool {
                         switch nostrResponse {
                         case .event(_, let nostrEvent):
                             if seenEvents.contains(nostrEvent.id) { break } // Don't send two of the same events.
+                            printPipe("RelayPool_Handler_\(id.uuidString)", "SubscriptionManager_Network_Stream_\(id.uuidString)")
                             continuation.yield(with: .success(.event(nostrEvent)))
                             seenEvents.insert(nostrEvent.id)
                         case .notice(let note):
@@ -326,6 +327,7 @@ actor RelayPool {
                             let desiredAndConnectedRelays = desiredRelays.filter({ $0.connection.isConnected }).map({ $0.descriptor.url })
                             Log.debug("RelayPool subscription %s: EOSE from %s. EOSE count: %d/%d. Elapsed: %.2f seconds.", for: .networking, id.uuidString, relayUrl.absoluteString, relaysWhoFinishedInitialResults.count, Set(desiredAndConnectedRelays).count, CFAbsoluteTimeGetCurrent() - startTime)
                             if relaysWhoFinishedInitialResults == Set(desiredAndConnectedRelays) {
+                                printPipe("RelayPool_Handler_\(id)", "SubscriptionManager_Network_Stream_\(id)")
                                 continuation.yield(with: .success(.eose))
                                 eoseSent = true
                             }
@@ -535,6 +537,7 @@ actor RelayPool {
         }
 
         for handler in handlers {
+            printPipe("RelayPool_\(relay_id.absoluteString)", "RelayPool_Handler_\(handler.sub_id)")
             handler.handler.yield((relay_id, event))
         }
     }

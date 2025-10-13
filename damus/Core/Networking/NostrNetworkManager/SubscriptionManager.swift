@@ -133,6 +133,7 @@ extension NostrNetworkManager {
                     
                     if canIssueEOSE {
                         Self.logger.debug("Session subscription \(id.uuidString, privacy: .public): Issued EOSE for session. Elapsed: \(CFAbsoluteTimeGetCurrent() - startTime, format: .fixed(precision: 2), privacy: .public) seconds")
+                        printPipe("SubscriptionManager_Advanced_Stream_\(id)", "Consumer_\(id)")
                         continuation.yield(.eose)
                     }
                 }
@@ -143,12 +144,14 @@ extension NostrNetworkManager {
                             try Task.checkCancellation()
                             switch item {
                             case .event(let lender):
+                                printPipe("SubscriptionManager_Advanced_Stream_\(id)", "Consumer_\(id)")
                                 continuation.yield(item)
                             case .eose:
                                 break   // Should not happen
                             case .ndbEose:
                                 break   // Should not happen
                             case .networkEose:
+                                printPipe("SubscriptionManager_Advanced_Stream_\(id)", "Consumer_\(id)")
                                 continuation.yield(item)
                                 networkEOSEIssued = true
                                 yieldEOSEIfReady()
@@ -163,10 +166,12 @@ extension NostrNetworkManager {
                             try Task.checkCancellation()
                             switch item {
                             case .event(let lender):
+                                printPipe("SubscriptionManager_Advanced_Stream_\(id)", "Consumer_\(id)")
                                 continuation.yield(item)
                             case .eose:
                                 break   // Should not happen
                             case .ndbEose:
+                                printPipe("SubscriptionManager_Advanced_Stream_\(id)", "Consumer_\(id)")
                                 continuation.yield(item)
                                 ndbEOSEIssued = true
                                 yieldEOSEIfReady()
@@ -212,10 +217,12 @@ extension NostrNetworkManager {
                                 case .ndbFirst:
                                     break   // NO-OP
                                 case .ndbAndNetworkParallel:
+                                    printPipe("SubscriptionManager_Network_Stream_\(id)", "SubscriptionManager_Advanced_Stream_\(id)")
                                     continuation.yield(.event(lender: NdbNoteLender(ownedNdbNote: event)))
                                 }
                             case .eose:
                                 Self.logger.debug("Session subscription \(id.uuidString, privacy: .public): Received EOSE from the network. Elapsed: \(CFAbsoluteTimeGetCurrent() - startTime, format: .fixed(precision: 2), privacy: .public) seconds")
+                                printPipe("SubscriptionManager_Network_Stream_\(id)", "SubscriptionManager_Advanced_Stream_\(id)")
                                 continuation.yield(.networkEose)
                             }
                         }
@@ -249,6 +256,7 @@ extension NostrNetworkManager {
                             Self.logger.info("\(subscriptionId.uuidString, privacy: .public): Streaming from NDB.")
                             for await item in self.sessionNdbStream(filters: filters, to: desiredRelays, streamMode: streamMode, id: id) {
                                 try Task.checkCancellation()
+                                printPipe("SubscriptionManager_Ndb_Session_Stream_\(id?.uuidString ?? "NoID")", "SubscriptionManager_Advanced_Stream_\(id?.uuidString ?? "NoID")")
                                 continuation.yield(item)
                             }
                             Self.logger.info("\(subscriptionId.uuidString, privacy: .public): Session subscription ended. Sleeping for 1 second before resuming.")
@@ -281,15 +289,18 @@ extension NostrNetworkManager {
                             switch item {
                             case .eose:
                                 Self.logger.debug("Session subscription \(id.uuidString, privacy: .public): Received EOSE from nostrdb. Elapsed: \(CFAbsoluteTimeGetCurrent() - startTime, format: .fixed(precision: 2), privacy: .public) seconds")
+                                printPipe("SubscriptionManager_Ndb_Session_Stream_\(id)", "SubscriptionManager_Ndb_MultiSession_Stream_\(id)")
                                 continuation.yield(.ndbEose)
                             case .event(let noteKey):
                                 let lender = NdbNoteLender(ndb: self.ndb, noteKey: noteKey)
                                 try Task.checkCancellation()
                                 guard let desiredRelays else {
+                                    printPipe("SubscriptionManager_Ndb_Session_Stream_\(id)", "SubscriptionManager_Ndb_MultiSession_Stream_\(id)")
                                     continuation.yield(.event(lender: lender))  // If no desired relays are specified, return all notes we see.
                                     break
                                 }
                                 if try ndb.was(noteKey: noteKey, seenOnAnyOf: desiredRelays) {
+                                    printPipe("SubscriptionManager_Ndb_Session_Stream_\(id)", "SubscriptionManager_Ndb_MultiSession_Stream_\(id)")
                                     continuation.yield(.event(lender: lender))  // If desired relays were specified and this note was seen there, return it.
                                 }
                             }
