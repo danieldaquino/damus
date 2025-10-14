@@ -187,7 +187,7 @@ extension NostrNetworkManager {
                                         latestNoteTimestampSeen = max(latestTimestamp, event.createdAt)
                                     }
                                     else {
-                                        latestNoteTimestampSeen == event.createdAt
+                                        latestNoteTimestampSeen = event.createdAt
                                     }
                                 })
                                 continuation.yield(item)
