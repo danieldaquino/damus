@@ -282,7 +282,7 @@ extension NostrNetworkManager {
                             Self.logger.info("\(subscriptionId.uuidString, privacy: .public): Streaming from NDB.")
                             for await item in self.sessionNdbStream(filters: filters, to: desiredRelays, streamMode: streamMode, id: id) {
                                 try Task.checkCancellation()
-                                printPipe("SubscriptionManager_Ndb_Session_Stream_\(id?.uuidString ?? "NoID")", "SubscriptionManager_Advanced_Stream_\(id?.uuidString ?? "NoID")")
+                                printPipe("SubscriptionManager_Ndb_MultiSession_Stream_\(id?.uuidString ?? "NoID")", "SubscriptionManager_Advanced_Stream_\(id?.uuidString ?? "NoID")")
                                 continuation.yield(item)
                             }
                             Self.logger.info("\(subscriptionId.uuidString, privacy: .public): Session subscription ended. Sleeping for 1 second before resuming.")
