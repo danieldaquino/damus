@@ -138,26 +138,41 @@ extension NostrNetworkManager {
                     }
                 }
                 
-                let streamTask = Task {
-                    while !Task.isCancelled {
-                        for await item in self.multiSessionNetworkStream(filters: filters, to: desiredRelays, streamMode: streamMode, id: id) {
-                            try Task.checkCancellation()
-                            switch item {
-                            case .event(let lender):
-                                printPipe("SubscriptionManager_Advanced_Stream_\(id)", "Consumer_\(id)")
-                                continuation.yield(item)
-                            case .eose:
-                                break   // Should not happen
-                            case .ndbEose:
-                                break   // Should not happen
-                            case .networkEose:
-                                printPipe("SubscriptionManager_Advanced_Stream_\(id)", "Consumer_\(id)")
-                                continuation.yield(item)
-                                networkEOSEIssued = true
-                                yieldEOSEIfReady()
+                var networkStreamTask: Task<Void, any Error>? = nil
+                var latestNoteTimestampSeen: UInt32? = nil
+                
+                let startNetworkStreamTask = {
+                    networkStreamTask = Task {
+                        while !Task.isCancelled {
+                            let optimizedFilters = filters.map {
+                                var optimizedFilter = $0
+                                optimizedFilter.since = latestNoteTimestampSeen
+                                return optimizedFilter
+                            }
+                            for await item in self.multiSessionNetworkStream(filters: optimizedFilters, to: desiredRelays, streamMode: streamMode, id: id) {
+                                try Task.checkCancellation()
+                                switch item {
+                                case .event(let lender):
+                                    printPipe("SubscriptionManager_Advanced_Stream_\(id)", "Consumer_\(id)")
+                                    continuation.yield(item)
+                                case .eose:
+                                    break   // Should not happen
+                                case .ndbEose:
+                                    break   // Should not happen
+                                case .networkEose:
+                                    printPipe("SubscriptionManager_Advanced_Stream_\(id)", "Consumer_\(id)")
+                                    continuation.yield(item)
+                                    networkEOSEIssued = true
+                                    yieldEOSEIfReady()
+                                }
                             }
                         }
                     }
+                }
+                
+                if streamMode.optimizeNetworkFilter == false {
+                    // Start streaming from the network straight away
+                    startNetworkStreamTask()
                 }
                 
                 let ndbStreamTask = Task {
@@ -167,6 +182,14 @@ extension NostrNetworkManager {
                             switch item {
                             case .event(let lender):
                                 printPipe("SubscriptionManager_Advanced_Stream_\(id)", "Consumer_\(id)")
+                                try? lender.borrow({ event in
+                                    if let latestTimestamp = latestNoteTimestampSeen {
+                                        latestNoteTimestampSeen = max(latestTimestamp, event.createdAt)
+                                    }
+                                    else {
+                                        latestNoteTimestampSeen == event.createdAt
+                                    }
+                                })
                                 continuation.yield(item)
                             case .eose:
                                 break   // Should not happen
@@ -174,6 +197,9 @@ extension NostrNetworkManager {
                                 printPipe("SubscriptionManager_Advanced_Stream_\(id)", "Consumer_\(id)")
                                 continuation.yield(item)
                                 ndbEOSEIssued = true
+                                if streamMode.optimizeNetworkFilter {
+                                    startNetworkStreamTask()
+                                }
                                 yieldEOSEIfReady()
                             case .networkEose:
                                 break   // Should not happen
@@ -183,7 +209,7 @@ extension NostrNetworkManager {
                 }
                 
                 continuation.onTermination = { @Sendable _ in
-                    streamTask.cancel()
+                    networkStreamTask?.cancel()
                     ndbStreamTask.cancel()
                 }
             }
@@ -329,7 +355,7 @@ extension NostrNetworkManager {
         // MARK: - Utility functions
         
         private func defaultStreamMode() -> StreamMode {
-            self.experimentalLocalRelayModelSupport ? .ndbFirst : .ndbAndNetworkParallel
+            self.experimentalLocalRelayModelSupport ? .ndbFirst(optimizeNetworkFilter: false) : .ndbAndNetworkParallel(optimizeNetworkFilter: false)
         }
         
         // MARK: - Finding specific data from Nostr
@@ -507,8 +533,19 @@ extension NostrNetworkManager {
     /// The mode of streaming
     enum StreamMode {
         /// Returns notes exclusively through NostrDB, treating it as the only channel for information in the pipeline. Generic EOSE is fired when EOSE is received from NostrDB
-        case ndbFirst
+        /// `optimizeNetworkFilter`: Returns notes from ndb, then streams from the network with an added "since" filter set to the latest note stored on ndb.
+        case ndbFirst(optimizeNetworkFilter: Bool)
         /// Returns notes from both NostrDB and the network, in parallel, treating it with similar importance against the network relays. Generic EOSE is fired when EOSE is received from both the network and NostrDB
-        case ndbAndNetworkParallel
+        /// `optimizeNetworkFilter`: Returns notes from ndb, then streams from the network with an added "since" filter set to the latest note stored on ndb.
+        case ndbAndNetworkParallel(optimizeNetworkFilter: Bool)
+        
+        var optimizeNetworkFilter: Bool {
+            switch self {
+            case .ndbFirst(optimizeNetworkFilter: let optimizeNetworkFilter):
+                return optimizeNetworkFilter
+            case .ndbAndNetworkParallel(optimizeNetworkFilter: let optimizeNetworkFilter):
+                return optimizeNetworkFilter
+            }
+        }
     }
 }

@@ -602,7 +602,7 @@ class HomeModel: ContactsDelegate, ObservableObject {
             DispatchQueue.main.async {
                 self.loading = true
             }
-            for await item in damus_state.nostrNetwork.reader.advancedStream(filters: home_filters, id: id) {
+            for await item in damus_state.nostrNetwork.reader.advancedStream(filters: home_filters, streamMode: .ndbAndNetworkParallel(optimizeNetworkFilter: true), id: id) {
                 switch item {
                 case .event(let lender):
                     let currentTime = CFAbsoluteTimeGetCurrent()

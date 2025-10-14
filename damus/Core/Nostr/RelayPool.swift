@@ -537,6 +537,7 @@ actor RelayPool {
         }
 
         for handler in handlers {
+            guard handler.sub_id == event.subId else { continue }
             printPipe("RelayPool_\(relay_id.absoluteString)", "RelayPool_Handler_\(handler.sub_id)")
             handler.handler.yield((relay_id, event))
         }
