@@ -1,5 +1,5 @@
 {
-  "originHash" : "1fc7e0b44329ba72cd285eeb022b5b92582cd01586b920d243cb0485c2e69dcc",
+  "originHash" : "171d8145936a0d3a520b95fc96dce586556c42a5f3831f02f325e6546d626dd9",
   "pins" : [
     {
       "identity" : "codescanner",
@@ -60,6 +60,15 @@
       "state" : {
         "revision" : "4c6b067f96953ee19526e49e4189403a2be21fb3",
         "version" : "8.3.1"
+      }
+    },
+    {
+      "identity" : "negentropy-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/damus-io/negentropy-swift",
+      "state" : {
+        "revision" : "181789fb0842f5666020db87ffea0d120cc5aa5d",
+        "version" : "0.1.0"
       }
     },
     {
