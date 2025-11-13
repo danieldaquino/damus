@@ -28,18 +28,19 @@ class ThreadModel: ObservableObject {
     /// ## Implementation notes
     ///
     /// This is a computed property because we then don't need to worry about keeping things in sync
-    var parent_events: [NostrEvent] {
+    func parent_events() async -> [NostrEvent] {
         // This block of code helps ensure `ThreadEventMap` stays in sync with `EventCache`
         let parent_events_from_cache = damus_state.events.parent_events(event: selected_event, keypair: damus_state.keypair)
-        for parent_event in parent_events_from_cache {
-            add_event(
-                parent_event,
-                keypair: damus_state.keypair,
-                look_for_parent_events: false,   // We have all parents we need for now
-                publish_changes: false           // Publishing changes during a view render is problematic
-            )
+        Task {
+            for parent_event in parent_events_from_cache {
+                add_event(
+                    parent_event,
+                    keypair: damus_state.keypair,
+                    look_for_parent_events: false,   // We have all parents we need for now
+                    publish_changes: false           // Publishing changes during a view render is problematic
+                )
+            }
         }
-        
         return parent_events_from_cache
     }
     /// All of the direct and indirect replies of `selected_event` in the thread. sorted chronologically
@@ -170,8 +171,10 @@ class ThreadModel: ObservableObject {
     @MainActor
     private func handle_event(ev: NostrEvent) {
         if ev.known_kind == .zap {
-            process_zap_event(state: damus_state, ev: ev) { zap in
-                
+            Task {
+                await process_zap_event(state: damus_state, ev: ev) { zap in
+                    
+                }
             }
         } else if ev.is_textlike {
             // handle thread quote reposts, we just count them instead of

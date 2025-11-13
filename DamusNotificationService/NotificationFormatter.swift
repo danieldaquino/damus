@@ -101,7 +101,7 @@ struct NotificationFormatter {
                     return nil
                 }
                 content.title = Self.zap_notification_title(zap)
-                content.body = Self.zap_notification_body(profiles: state.profiles, zap: zap)
+                content.body = await Self.zap_notification_body(profiles: state.profiles, zap: zap)
                 content.sound = UNNotificationSound.default
                 content.userInfo = LossyLocalNotification(type: .zap, mention: .init(nip19: .note(notify.event.id))).to_user_info()
                 return (content, "myZapNotification")
@@ -121,12 +121,13 @@ struct NotificationFormatter {
         }
     }
 
-    static func zap_notification_body(profiles: Profiles, zap: Zap, locale: Locale = Locale.current) -> String {
+    
+    static func zap_notification_body(profiles: Profiles, zap: Zap, locale: Locale = Locale.current) async -> String {
         let src = zap.request.ev
         let pk = zap.is_anon ? ANON_PUBKEY : src.pubkey
 
-        let profile_txn = profiles.lookup(id: pk)
-        let profile = profile_txn?.unsafeUnownedValue
+        let profile_txn = await profiles.lookup(id: pk)
+        let profile = await profile_txn?.unsafeUnownedValue
         let name = Profile.displayName(profile: profile, pubkey: pk).displayName.truncate(maxLength: 50)
 
         let sats = NSNumber(value: (Double(zap.invoice.amount) / 1000.0))

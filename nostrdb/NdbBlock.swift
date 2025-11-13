@@ -102,6 +102,7 @@ enum NdbBlock: ~Copyable {
 }
 
 /// Represents a group of blocks
+@NdbActor
 struct NdbBlockGroup: ~Copyable {
     /// The block offsets
     fileprivate let metadata: MaybeTxn<BlocksMetadata>
@@ -134,7 +135,7 @@ struct NdbBlockGroup: ~Copyable {
     /// Parses the note contents on-demand from a specific note.
     ///
     /// Prioritize using `from(event: NdbNote, using ndb: Ndb, and keypair: Keypair)` when possible.
-    static func parse(event: NdbNote, keypair: Keypair) throws(NdbBlocksError) -> Self {
+    nonisolated static func parse(event: NdbNote, keypair: Keypair) throws(NdbBlocksError) -> Self {
         guard let content = event.maybe_get_content(keypair) else { throw NdbBlocksError.decryptionError }
         guard let metadata = BlocksMetadata.parseContent(content: content) else { throw NdbBlocksError.parseError }
         return self.init(
@@ -153,6 +154,7 @@ struct NdbBlockGroup: ~Copyable {
     }
 }
 
+@NdbActor
 enum MaybeTxn<T: ~Copyable>: ~Copyable {
     case pure(T)
     case txn(SafeNdbTxn<T>)

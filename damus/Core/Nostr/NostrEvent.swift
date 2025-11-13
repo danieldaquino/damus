@@ -800,6 +800,7 @@ func validate_event(ev: NostrEvent) -> ValidationResult {
     return ok ? .ok : .bad_sig
 }
 
+@NdbActor
 func first_eref_mention(ndb: Ndb, ev: NostrEvent, keypair: Keypair) -> Mention<NoteId>? {
     guard let blockGroup = try? NdbBlockGroup.from(event: ev, using: ndb, and: keypair) else { return nil }
     
@@ -821,11 +822,12 @@ func first_eref_mention(ndb: Ndb, ev: NostrEvent, keypair: Keypair) -> Mention<N
     })
 }
 
+@NdbActor
 func separate_invoices(ndb: Ndb, ev: NostrEvent, keypair: Keypair) -> [Invoice]? {
     guard let blockGroup = try? NdbBlockGroup.from(event: ev, using: ndb, and: keypair) else {
         return nil
     }
-    let invoiceBlocks: [Invoice] = (try? blockGroup.reduce(initialResult: [Invoice](), { index, invoices, block in
+    let invoiceBlocks: [Invoice] = (blockGroup.reduce(initialResult: [Invoice](), { index, invoices, block in
         switch block {
         case .invoice(let invoice):
             if let invoice = invoice.as_invoice() {

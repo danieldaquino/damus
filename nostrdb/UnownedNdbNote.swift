@@ -41,6 +41,7 @@
 ///     return try lender.getNoteCopy() // This will automatically make an owned copy of the note, which can be passed around safely.
 /// }
 /// ```
+@NdbActor
 enum NdbNoteLender: Sendable {
     case ndbNoteKey(Ndb, NoteKey)
     case owned(NdbNote)
@@ -49,7 +50,7 @@ enum NdbNoteLender: Sendable {
         self = .ndbNoteKey(ndb, noteKey)
     }
     
-    init(ownedNdbNote: NdbNote) {
+    nonisolated init(ownedNdbNote: NdbNote) {
         self = .owned(ownedNdbNote)
     }
     
@@ -136,13 +137,15 @@ enum NdbNoteLender: Sendable {
 
 
 /// A wrapper to NdbNote that allows unowned NdbNotes to be safely handled
-struct UnownedNdbNote: ~Copyable {
+struct UnownedNdbNote: ~Copyable, Sendable {
     private let _ndbNote: NdbNote
     
+    @NdbActor
     init(_ txn: NdbTxn<NdbNote>) {
         self._ndbNote = txn.unsafeUnownedValue
     }
     
+    @NdbActor
     init?(_ txn: NdbTxn<NdbNote?>) {
         guard let note = txn.unsafeUnownedValue else { return nil }
         self._ndbNote = note

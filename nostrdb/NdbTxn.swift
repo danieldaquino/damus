@@ -12,6 +12,7 @@ fileprivate var txn_count: Int = 0
 #endif
 
 // Would use struct and ~Copyable but generics aren't supported well
+@NdbActor
 class NdbTxn<T>: RawNdbTxnAccessible {
     var txn: ndb_txn
     private var val: T!
@@ -84,37 +85,45 @@ class NdbTxn<T>: RawNdbTxnAccessible {
     }
 
     deinit {
-        if self.generation != ndb.generation {
-            print("txn: OLD GENERATION (\(self.generation) != \(ndb.generation)), IGNORING")
-            return
-        }
-        if ndb.is_closed {
-            print("txn: not closing. db closed")
-            return
-        }
-        if let ref_count = Thread.current.threadDictionary["ndb_txn_ref_count"] as? Int {
-            let new_ref_count = ref_count - 1
-            Thread.current.threadDictionary["ndb_txn_ref_count"] = new_ref_count
-            assert(new_ref_count >= 0, "NdbTxn reference count should never be below zero")
-            if new_ref_count <= 0 {
-                ndb_end_query(&self.txn)
-                Thread.current.threadDictionary.removeObject(forKey: "ndb_txn")
-                Thread.current.threadDictionary.removeObject(forKey: "ndb_txn_ref_count")
+        let generation = self.generation
+        let inherited = self.inherited
+        let moved = self.moved
+        var txn = self.txn
+        Task { [ndb] in
+            let ndbGeneration = await ndb.generation
+            let ndbIsClosed = await ndb.is_closed
+            if generation != ndbGeneration {
+                print("txn: OLD GENERATION (\(generation) != \(ndbGeneration)), IGNORING")
+                return
             }
-        }
-        if inherited {
-            print("txn: not closing. inherited ")
-            return
-        }
-        if moved {
-            //print("txn: not closing. moved")
-            return
-        }
+            if ndbIsClosed {
+                print("txn: not closing. db closed")
+                return
+            }
+            if let ref_count = Thread.current.threadDictionary["ndb_txn_ref_count"] as? Int {
+                let new_ref_count = ref_count - 1
+                Thread.current.threadDictionary["ndb_txn_ref_count"] = new_ref_count
+                assert(new_ref_count >= 0, "NdbTxn reference count should never be below zero")
+                if new_ref_count <= 0 {
+                    ndb_end_query(&txn)
+                    Thread.current.threadDictionary.removeObject(forKey: "ndb_txn")
+                    Thread.current.threadDictionary.removeObject(forKey: "ndb_txn_ref_count")
+                }
+            }
+            if inherited {
+                print("txn: not closing. inherited ")
+                return
+            }
+            if moved {
+                //print("txn: not closing. moved")
+                return
+            }
 
-        #if TXNDEBUG
-        txn_count -= 1;
-        print("txn: close gen\(generation) '\(name)' \(txn_count)")
-        #endif
+            #if TXNDEBUG
+            txn_count -= 1;
+            print("txn: close gen\(generation) '\(name)' \(txn_count)")
+            #endif
+        }
     }
 
     // functor
@@ -143,6 +152,7 @@ class PlaceholderNdbTxn: RawNdbTxnAccessible {
     }
 }
 
+@NdbActor
 class SafeNdbTxn<T: ~Copyable> {
     var txn: ndb_txn
     var val: T!
@@ -210,37 +220,45 @@ class SafeNdbTxn<T: ~Copyable> {
     }
 
     deinit {
-        if self.generation != ndb.generation {
-            print("txn: OLD GENERATION (\(self.generation) != \(ndb.generation)), IGNORING")
-            return
-        }
-        if ndb.is_closed {
-            print("txn: not closing. db closed")
-            return
-        }
-        if let ref_count = Thread.current.threadDictionary["ndb_txn_ref_count"] as? Int {
-            let new_ref_count = ref_count - 1
-            Thread.current.threadDictionary["ndb_txn_ref_count"] = new_ref_count
-            assert(new_ref_count >= 0, "NdbTxn reference count should never be below zero")
-            if new_ref_count <= 0 {
-                ndb_end_query(&self.txn)
-                Thread.current.threadDictionary.removeObject(forKey: "ndb_txn")
-                Thread.current.threadDictionary.removeObject(forKey: "ndb_txn_ref_count")
+        let generation = self.generation
+        let inherited = self.inherited
+        let moved = self.moved
+        var txn = self.txn
+        Task { [ndb] in
+            let ndbGeneration = await ndb.generation
+            let ndbIsClosed = await ndb.is_closed
+            if generation != ndbGeneration {
+                print("txn: OLD GENERATION (\(generation) != \(ndbGeneration)), IGNORING")
+                return
             }
+            if ndbIsClosed {
+                print("txn: not closing. db closed")
+                return
+            }
+            if let ref_count = Thread.current.threadDictionary["ndb_txn_ref_count"] as? Int {
+                let new_ref_count = ref_count - 1
+                Thread.current.threadDictionary["ndb_txn_ref_count"] = new_ref_count
+                assert(new_ref_count >= 0, "NdbTxn reference count should never be below zero")
+                if new_ref_count <= 0 {
+                    ndb_end_query(&txn)
+                    Thread.current.threadDictionary.removeObject(forKey: "ndb_txn")
+                    Thread.current.threadDictionary.removeObject(forKey: "ndb_txn_ref_count")
+                }
+            }
+            if inherited {
+                print("txn: not closing. inherited ")
+                return
+            }
+            if moved {
+                //print("txn: not closing. moved")
+                return
+            }
+            
+            #if TXNDEBUG
+            txn_count -= 1;
+            print("txn: close gen\(generation) '\(name)' \(txn_count)")
+            #endif
         }
-        if inherited {
-            print("txn: not closing. inherited ")
-            return
-        }
-        if moved {
-            //print("txn: not closing. moved")
-            return
-        }
-
-        #if TXNDEBUG
-        txn_count -= 1;
-        print("txn: close gen\(generation) '\(name)' \(txn_count)")
-        #endif
     }
 
     // functor

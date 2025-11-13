@@ -163,6 +163,7 @@ class EventCache {
         return image_metadata[url.absoluteString.lowercased()]
     }
     
+    @NdbActor
     func parent_events(event: NostrEvent, keypair: Keypair) -> [NostrEvent] {
         var parents: [NostrEvent] = []
         
@@ -188,6 +189,7 @@ class EventCache {
         }
     }
 
+    @NdbActor
     func child_events(event: NostrEvent) -> [NostrEvent] {
         guard let xs = replies.lookup(event.id) else {
             return []
@@ -202,6 +204,7 @@ class EventCache {
         return evs
     }
     
+    @NdbActor
     func upsert(_ ev: NostrEvent) -> NostrEvent {
         if let found = lookup(ev.id) {
             return found
@@ -217,6 +220,7 @@ class EventCache {
     }
      */
 
+    @NdbActor
     func lookup(_ evid: NoteId) -> NostrEvent? {
         if let ev = events[evid] {
             return ev
@@ -376,7 +380,7 @@ func preload_event(plan: PreloadPlan, state: DamusState) async {
     //print("Preloading event \(plan.event.content)")
 
     if artifacts == nil && plan.load_artifacts {
-        let arts = await ContentRenderer().render_note_content(ndb: state.ndb, ev: plan.event, profiles: profiles, keypair: our_keypair)
+        let arts = await render_note_content(ndb: state.ndb, ev: plan.event, profiles: profiles, keypair: our_keypair)
         artifacts = arts
         
         // we need these asap
@@ -402,7 +406,7 @@ func preload_event(plan: PreloadPlan, state: DamusState) async {
             arts = artifacts
         }
         else {
-            arts = await ContentRenderer().render_note_content(ndb: state.ndb, ev: plan.event, profiles: profiles, keypair: our_keypair)
+            arts = await render_note_content(ndb: state.ndb, ev: plan.event, profiles: profiles, keypair: our_keypair)
         }
 
         // only separated artifacts have previews

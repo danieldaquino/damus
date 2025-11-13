@@ -79,7 +79,7 @@ class ProfileModel: ObservableObject, Equatable {
             text_filter.limit = 500
             await bumpUpProgress()
             for await event in damus.nostrNetwork.reader.streamIndefinitely(filters: [text_filter]) {
-                event.justUseACopy({ handleNostrEvent($0) })
+                await event.justUseACopy({ handleNostrEvent($0) })
             }
         }
         profileListener?.cancel()
@@ -89,7 +89,7 @@ class ProfileModel: ObservableObject, Equatable {
             profile_filter.authors = [pubkey]
             await bumpUpProgress()
             for await event in damus.nostrNetwork.reader.streamIndefinitely(filters: [profile_filter, relay_list_filter]) {
-                event.justUseACopy({ handleNostrEvent($0) })
+                await event.justUseACopy({ handleNostrEvent($0) })
             }
             
         }
@@ -119,8 +119,8 @@ class ProfileModel: ObservableObject, Equatable {
             try? await noteLender.borrow { ev in
                 if await !seen_event.contains(ev.id) {
                     let event = ev.toOwned()
-                    Task { await self.add_event(event) }
-                    conversation_events.insert(ev.id)
+                    await self.add_event(event)
+                    conversation_events.insert(event.id)
                 }
                 else if !conversation_events.contains(ev.id) {
                     conversation_events.insert(ev.id)
@@ -192,7 +192,7 @@ class ProfileModel: ObservableObject, Equatable {
         self.findRelaysListener?.cancel()
         self.findRelaysListener = Task {
             for await noteLender in damus.nostrNetwork.reader.streamIndefinitely(filters: [profile_filter]) {
-                try? noteLender.borrow { event in
+                try? await noteLender.borrow { event in
                     if case .contacts = event.known_kind {
                         // TODO: Is this correct?
                         self.legacy_relay_list = decode_json_relays(event.content)

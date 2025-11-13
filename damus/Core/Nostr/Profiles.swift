@@ -74,18 +74,22 @@ class Profiles {
         profile_data(pubkey).zapper
     }
 
+    @NdbActor
     func lookup_with_timestamp(_ pubkey: Pubkey) -> NdbTxn<ProfileRecord?>? {
         ndb.lookup_profile(pubkey)
     }
 
+    @NdbActor
     func lookup_by_key(key: ProfileKey) -> NdbTxn<ProfileRecord?>? {
         ndb.lookup_profile_by_key(key: key)
     }
 
+    @NdbActor
     func search<Y>(_ query: String, limit: Int, txn: NdbTxn<Y>) -> [Pubkey] {
         ndb.search_profile(query, limit: limit, txn: txn)
     }
 
+    @NdbActor
     func lookup(id: Pubkey, txn_name: String? = nil) -> NdbTxn<Profile?>? {
         guard let txn = ndb.lookup_profile(id, txn_name: txn_name) else {
             return nil
@@ -93,10 +97,12 @@ class Profiles {
         return txn.map({ pr in pr?.profile })
     }
 
+    @NdbActor
     func lookup_key_by_pubkey(_ pubkey: Pubkey) -> ProfileKey? {
         ndb.lookup_profile_key(pubkey)
     }
 
+    @NdbActor
     func has_fresh_profile<Y>(id: Pubkey, txn: NdbTxn<Y>) -> Bool {
         guard let fetched_at = ndb.read_profile_last_fetched(txn: txn, pubkey: id)
         else {

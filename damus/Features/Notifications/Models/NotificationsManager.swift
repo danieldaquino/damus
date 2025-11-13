@@ -18,11 +18,11 @@ func process_local_notification(state: HeadlessDamusState, event ev: NostrEvent)
         return
     }
 
-    guard let local_notification = generate_local_notification_object(ndb: state.ndb, from: ev, state: state) else {
+    guard let local_notification = await generate_local_notification_object(ndb: state.ndb, from: ev, state: state) else {
         return
     }
 
-    create_local_notification(profiles: state.profiles, notify: local_notification)
+    await create_local_notification(profiles: state.profiles, notify: local_notification)
 }
 
 func should_display_notification(state: HeadlessDamusState, event ev: NostrEvent, mode: UserSettingsStore.NotificationsMode) async -> Bool {
@@ -65,6 +65,7 @@ func should_display_notification(state: HeadlessDamusState, event ev: NostrEvent
     return true
 }
 
+@NdbActor
 func generate_local_notification_object(ndb: Ndb, from ev: NostrEvent, state: HeadlessDamusState) -> LocalNotification? {
     guard let type = ev.known_kind else {
         return nil
@@ -74,7 +75,7 @@ func generate_local_notification_object(ndb: Ndb, from ev: NostrEvent, state: He
        state.settings.mention_notification,
        let blockGroup = try? NdbBlockGroup.from(event: ev, using: ndb, and: state.keypair)
     {
-        let notification: LocalNotification? = try? blockGroup.forEachBlock({ index, block in
+        let notification: LocalNotification? = blockGroup.forEachBlock({ index, block in
             switch block {
             case .mention(let mention):
                 guard case .npub = mention.bech32_type,
@@ -136,8 +137,8 @@ func generate_local_notification_object(ndb: Ndb, from ev: NostrEvent, state: He
     return nil
 }
 
-func create_local_notification(profiles: Profiles, notify: LocalNotification) {
-    let displayName = event_author_name(profiles: profiles, pubkey: notify.event.pubkey)
+func create_local_notification(profiles: Profiles, notify: LocalNotification) async {
+    let displayName = await event_author_name(profiles: profiles, pubkey: notify.event.pubkey)
     
     guard let (content, identifier) = NotificationFormatter.shared.format_message(displayName: displayName, notify: notify) else { return }
 
@@ -154,6 +155,7 @@ func create_local_notification(profiles: Profiles, notify: LocalNotification) {
     }
 }
 
+@NdbActor
 func render_notification_content_preview(ndb: Ndb, ev: NostrEvent, profiles: Profiles, keypair: Keypair) -> String {
 
     let prefix_len = 300
@@ -176,6 +178,7 @@ func render_notification_content_preview(ndb: Ndb, ev: NostrEvent, profiles: Pro
     }
 }
 
+@NdbActor
 func event_author_name(profiles: Profiles, pubkey: Pubkey) -> String {
     let profile_txn = profiles.lookup(id: pubkey)
     let profile = profile_txn?.unsafeUnownedValue
@@ -185,16 +188,18 @@ func event_author_name(profiles: Profiles, pubkey: Pubkey) -> String {
 @MainActor
 func get_zap(from ev: NostrEvent, state: HeadlessDamusState) async -> Zap? {
     return await withCheckedContinuation { continuation in
-        process_zap_event(state: state, ev: ev) { zapres in
-            continuation.resume(returning: zapres.get_zap())
+        Task {
+            await process_zap_event(state: state, ev: ev) { zapres in
+                continuation.resume(returning: zapres.get_zap())
+            }
         }
     }
 }
 
 @MainActor
-func process_zap_event(state: HeadlessDamusState, ev: NostrEvent, completion: @escaping (ProcessZapResult) -> Void) {
+func process_zap_event(state: HeadlessDamusState, ev: NostrEvent, completion: @escaping (ProcessZapResult) -> Void) async {
     // These are zap notifications
-    guard let ptag = get_zap_target_pubkey(ev: ev, ndb: state.ndb) else {
+    guard let ptag = await get_zap_target_pubkey(ev: ev, ndb: state.ndb) else {
         completion(.failed)
         return
     }
@@ -214,14 +219,14 @@ func process_zap_event(state: HeadlessDamusState, ev: NostrEvent, completion: @e
         completion(.done(zap))
         return
     }
-    
-    guard let txn = state.profiles.lookup_with_timestamp(ptag),
-          let lnurl = txn.map({ pr in pr?.lnurl }).value else {
-        completion(.failed)
-        return
-    }
 
-    Task { [lnurl] in
+    Task {
+        guard let txn = await state.profiles.lookup_with_timestamp(ptag),
+              let lnurl = await txn.map({ pr in pr?.lnurl }).value else {
+            completion(.failed)
+            return
+        }
+        
         guard let zapper = await fetch_zapper_from_lnurl(lnurls: state.lnurls, pubkey: ptag, lnurl: lnurl) else {
             completion(.failed)
             return
@@ -241,6 +246,7 @@ func process_zap_event(state: HeadlessDamusState, ev: NostrEvent, completion: @e
 
 // securely get the zap target's pubkey. this can be faked so we need to be
 // careful
+@NdbActor
 func get_zap_target_pubkey(ev: NostrEvent, ndb: Ndb) -> Pubkey? {
     let etags = Array(ev.referenced_ids)
 

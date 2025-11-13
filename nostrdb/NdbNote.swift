@@ -474,6 +474,7 @@ extension NdbNote {
         return ThreadReply(tags: self.tags)?.reply.note_id
     }
 
+    @NdbActor
     func block_offsets(ndb: Ndb) -> SafeNdbTxn<NdbBlockGroup.BlocksMetadata>? {
         let blocks_txn: SafeNdbTxn<NdbBlockGroup.BlocksMetadata>? = .new(on: ndb) { txn -> NdbBlockGroup.BlocksMetadata? in
             guard let key = ndb.lookup_note_key_with_txn(self.id, txn: txn) else {

@@ -56,19 +56,18 @@ class NotificationService: UNNotificationServiceExtension {
             contentHandler(improved_content)
             return
         }
-
-        let sender_profile = {
-            let txn = state.ndb.lookup_profile(nostr_event.pubkey)
-            let profile = txn?.unsafeUnownedValue?.profile
-            let picture = ((profile?.picture.map { URL(string: $0) }) ?? URL(string: robohash(nostr_event.pubkey)))!
-            return ProfileBuf(picture: picture,
-                                 name: profile?.name,
-                         display_name: profile?.display_name,
-                                nip05: profile?.nip05)
-        }()
-        let sender_pubkey = nostr_event.pubkey
         
         Task {
+            let sender_profile = await {
+                let txn = await state.ndb.lookup_profile(nostr_event.pubkey)
+                let profile = await txn?.unsafeUnownedValue?.profile
+                let picture = ((profile?.picture.map { URL(string: $0) }) ?? URL(string: robohash(nostr_event.pubkey)))!
+                return ProfileBuf(picture: picture,
+                                     name: profile?.name,
+                             display_name: profile?.display_name,
+                                    nip05: profile?.nip05)
+            }()
+            let sender_pubkey = nostr_event.pubkey
 
             // Don't show notification details that match mute list.
             // TODO: Remove this code block once we get notification suppression entitlement from Apple. It will be covered by the `guard should_display_notification` block
@@ -92,7 +91,7 @@ class NotificationService: UNNotificationServiceExtension {
                 return
             }
 
-            guard let notification_object = generate_local_notification_object(ndb: state.ndb, from: nostr_event, state: state) else {
+            guard let notification_object = await generate_local_notification_object(ndb: state.ndb, from: nostr_event, state: state) else {
                 Log.debug("generate_local_notification_object failed", for: .push_notifications)
                 // We could not process this notification. Probably an unsupported nostr event kind. Suppress.
                 // contentHandler(UNNotificationContent())
@@ -186,8 +185,8 @@ func message_intent_from_note(ndb: Ndb, sender_profile: ProfileBuf, content: Str
 
     // gather recipients
     if let recipient_note_id = note.direct_replies() {
-        let replying_to = ndb.lookup_note(recipient_note_id)
-        if let replying_to_pk = replying_to?.unsafeUnownedValue?.pubkey {
+        let replying_to = await ndb.lookup_note(recipient_note_id)
+        if let replying_to_pk = await replying_to?.unsafeUnownedValue?.pubkey {
             meta.isReplyToCurrentUser = replying_to_pk == our_pubkey
 
             if replying_to_pk != sender_pk {
@@ -247,8 +246,8 @@ func message_intent_from_note(ndb: Ndb, sender_profile: ProfileBuf, content: Str
 }
 
 func pubkey_to_inperson(ndb: Ndb, pubkey: Pubkey, our_pubkey: Pubkey) async -> INPerson {
-    let profile_txn = ndb.lookup_profile(pubkey)
-    let profile = profile_txn?.unsafeUnownedValue?.profile
+    let profile_txn = await ndb.lookup_profile(pubkey)
+    let profile = await profile_txn?.unsafeUnownedValue?.profile
     let name = profile?.name
     let display_name = profile?.display_name
     let nip05 = profile?.nip05
