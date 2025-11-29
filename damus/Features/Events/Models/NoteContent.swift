@@ -327,9 +327,9 @@ func attributed_string_attach_icon(_ astr: inout AttributedString, img: UIImage)
 }
 
 func getDisplayName(pk: Pubkey, profiles: Profiles) -> String {
-    let profile_txn = profiles.lookup(id: pk, txn_name: "getDisplayName")
-    let profile = profile_txn?.unsafeUnownedValue
-    return Profile.displayName(profile: profile, pubkey: pk).username.truncate(maxLength: 50)
+    return profiles.lookup(id: pk, borrow: { profile in
+        return Profile.displayName(profile: profile, pubkey: pk).username.truncate(maxLength: 50)
+    })
 }
 
 func mention_str(_ m: Mention<MentionRef>, profiles: Profiles) -> CompatibleText {
