@@ -491,14 +491,19 @@ struct ContentView: View {
             Task { await damus_state.nostrNetwork.disconnectRelays() }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { obj in
+            print("[LCDEBUG]: DAMUS ACTIVE NOTIFY")
             print("txn: 📙 DAMUS ACTIVE NOTIFY")
             Task {
-                await damusClosingTask?.value  // Wait for the closing task to finish before reopening things, to avoid race conditions
-                if damus_state.ndb.reopen() {
-                    print("txn: NOSTRDB REOPENED")
-                } else {
-                    print("txn: NOSTRDB FAILED TO REOPEN closed:\(damus_state.ndb.is_closed)")
-                }
+//                print("[LCDEBUG]: Active notify handler: Waiting for damus closing task to complete")
+//                await damusClosingTask?.value  // Wait for the closing task to finish before reopening things, to avoid race conditions
+//                print("[LCDEBUG]: Active notify handler: Reopening Ndb")
+//                if damus_state.ndb.reopen() {
+//                    print("[LCDEBUG]: Active notify handler: Ndb reopened")
+//                    print("txn: NOSTRDB REOPENED")
+//                } else {
+//                    print("[LCDEBUG]: Active notify handler: Ndb failed to reopen. Closed: \(damus_state.ndb.is_closed)")
+//                    print("txn: NOSTRDB FAILED TO REOPEN closed:\(damus_state.ndb.is_closed)")
+//                }
                 if damus_state.purple.checkout_ids_in_progress.count > 0 {
                     // For extra assurance, run this after one second, to avoid race conditions if the app is also handling a damus purple welcome url.
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
@@ -525,31 +530,42 @@ struct ContentView: View {
             guard let damus_state else { return }
             switch phase {
             case .background:
+                print("[LCDEBUG]: BACKGROUND SIGNAL")
                 print("txn: 📙 DAMUS BACKGROUNDED")
                 let bgTask = this_app.beginBackgroundTask(withName: "Closing things down gracefully", expirationHandler: { [weak damus_state] in
                     Log.error("App background signal handling: RUNNING OUT OF TIME! JUST CLOSE NDB DIRECTLY!", for: .app_lifecycle)
+                    print("[LCDEBUG]: BACKGROUND SIGNAL HANDLING RUNNING OUT OF TIME, FORCE CLOSING")
                     // Background time about to expire, so close ndb directly.
                     // This may still cause a memory error crash if subscription tasks have not been properly closed yet, but that is less likely than a 0xdead10cc crash if we don't do anything here.
                     damus_state?.ndb.close()
                 })
                 
                 damusClosingTask = Task { @MainActor in
+                    print("[LCDEBUG]: App being backgrounded")
                     Log.debug("App background signal handling: App being backgrounded", for: .app_lifecycle)
                     let startTime = CFAbsoluteTimeGetCurrent()
                     await damus_state.nostrNetwork.handleAppBackgroundRequest()  // Close ndb streaming tasks before closing ndb to avoid memory errors
                     Log.debug("App background signal handling: Nostr network and Ndb closed after %.2f seconds", for: .app_lifecycle, CFAbsoluteTimeGetCurrent() - startTime)
+                    print("[LCDEBUG]: App background signal handling: Nostr network and Ndb closed after \(CFAbsoluteTimeGetCurrent() - startTime) seconds")
                     this_app.endBackgroundTask(bgTask)
+                    print("[LCDEBUG]: App background signal handling: Signalled background task ended")
                 }
                 break
             case .inactive:
                 print("txn: 📙 DAMUS INACTIVE")
+                print("[LCDEBUG]: Damus inactive signal")
                 break
             case .active:
                 print("txn: 📙 DAMUS ACTIVE")
+                print("[LCDEBUG]: Damus active signal")
                 Task {
+                    print("[LCDEBUG]: Damus active signal handling: Waiting for closing task to finish")
                     await damusClosingTask?.value  // Wait for the closing task to finish before reopening things, to avoid race conditions
+                    print("[LCDEBUG]: Damus active signal handling: Setting closing task to nil")
                     damusClosingTask = nil
+                    print("[LCDEBUG]: Damus active signal handling: begin to handle app foreground request")
                     await damus_state.nostrNetwork.handleAppForegroundRequest()
+                    print("[LCDEBUG]: Damus active signal handling: finished handling app foreground request")
                 }
             @unknown default:
                 break

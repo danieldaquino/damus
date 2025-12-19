@@ -89,7 +89,9 @@ class Ndb {
         var ndb_p: OpaquePointer? = nil
 
         let ingest_threads: Int32 = 4
-        var mapsize: Int = 1024 * 1024 * 1024 * 32
+        var mapsize: Int = 1024 * 1024 * 1024 * 2
+        
+        print("[LCDEBUG]: Ndb.open function starting, mapsize = \(mapsize)")
         
         if path == nil && owns_db_file {
             // `nil` path indicates the default path will be used.
@@ -105,16 +107,19 @@ class Ndb {
         
         guard let db_path = Self.db_path,
               owns_db_file || Self.db_files_exist(path: db_path) else {
+            print("[LCDEBUG]: Ndb.open function. Caller claims to not own the DB file, and the DB files do not exist, we should not initialize Ndb")
             return nil      // If the caller claims to not own the DB file, and the DB files do not exist, then we should not initialize Ndb
         }
 
         guard let path = path.map(remove_file_prefix) ?? Ndb.db_path else {
+            print("[LCDEBUG]: Ndb.open function. Cannot get path")
             return nil
         }
 
         let ok = path.withCString { testdir in
             var ok = false
             while !ok && mapsize > 1024 * 1024 * 700 {
+                print("[LCDEBUG]: Ndb.open function begin ndb open loop iteration. mapsize = \(mapsize)")
                 var cfg = ndb_config(flags: 0, ingester_threads: ingest_threads, writer_scratch_buffer_size: DEFAULT_WRITER_SCRATCH_SIZE, mapsize: mapsize, filter_context: nil, ingest_filter: nil, sub_cb_ctx: nil, sub_cb: nil)
                 
                 // Here we hook up the global callback function for subscription callbacks.
@@ -132,7 +137,8 @@ class Ndb {
                 let res = ndb_init(&ndb_p, testdir, &cfg);
                 ok = res != 0;
                 if !ok {
-                    Log.error("ndb_init failed: %d, reducing mapsize from %d to %d", for: .storage, res, mapsize, mapsize / 2)
+                    print("[LCDEBUG]: Ndb.open function. ndb_init failed: \(res). mapsize = \(mapsize)")
+                    Log.error("ndb_init failed: %d, reducing mapsize from %lld to %lld", for: .storage, res, mapsize, mapsize / 2)
                     mapsize /= 2
                 }
             }
@@ -140,6 +146,7 @@ class Ndb {
         }
 
         if !ok {
+            print("[LCDEBUG]: Ndb.open function. Not ok.")
             return nil
         }
         
@@ -229,16 +236,20 @@ class Ndb {
     }
 
     func reopen() -> Bool {
+        print("[LCDEBUG]: Ndb.reopen function. self.is_closed = \(self.is_closed)")
         guard self.is_closed,
               let db = Self.open(path: self.path, owns_db_file: self.owns_db, callbackHandler: self.callbackHandler) else {
             return false
         }
         
+        print("[LCDEBUG]: Ndb.reopen function. NOSTRDB REOPENED (gen \(generation))")
         print("txn: NOSTRDB REOPENED (gen \(generation))")
         
         self.ndb = db   // Set the new DB before marking it as open to prevent access to the old DB
         self.closed = false
+        print("[LCDEBUG]: Ndb.reopen function. Mark ndb open")
         self.ndbAccessLock.markNdbOpen()
+        print("[LCDEBUG]: Ndb.reopen function. Mark ndb open complete")
         return true
     }
     

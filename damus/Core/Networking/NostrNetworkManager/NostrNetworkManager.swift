@@ -69,9 +69,32 @@ class NostrNetworkManager {
     }
     
     func handleAppForegroundRequest() async {
-        self.delegate.ndb.reopen()
+        print("[LCDEBUG]: App foreground request handler: Attempting to reopen ndb")
+        Task { try await reopenNdbWithBackoffRetry() }
+        print("[LCDEBUG]: App foreground request handler: Pinging network")
         // Pinging the network will automatically reconnect any dead websocket connections
         await self.ping()
+        print("[LCDEBUG]: App foreground request handler: Network pinged")
+    }
+    
+    private func reopenNdbWithBackoffRetry() async throws {
+        let maxRetries = 13
+        var retries = 0
+        var openSuccess = false
+        print("[LCDEBUG]: reopenNdbWithBackoffRetry: reopen")
+        if self.delegate.ndb.is_closed == false {
+            print("[LCDEBUG]: reopenNdbWithBackoffRetry: ndb already open.")
+            return
+        }
+        openSuccess = self.delegate.ndb.reopen()
+        while !openSuccess && retries <= maxRetries {
+            print("[LCDEBUG]: reopenNdbWithBackoffRetry: retry \(retries+1) of \(maxRetries)")
+            let delayMilliseconds = Int(pow(2.0, Double(retries)))
+            try await Task.sleep(for: .milliseconds(delayMilliseconds))
+            openSuccess = self.delegate.ndb.reopen()
+            retries += 1
+        }
+        print("[LCDEBUG]: reopenNdbWithBackoffRetry: finished retries. Open success: \(openSuccess), retries: \(retries)")
     }
     
     func close() async {
