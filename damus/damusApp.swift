@@ -75,6 +75,7 @@ func registerNotificationCategories() {
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     var state: DamusState? = nil
+    var snapshotManager: DatabaseSnapshotManager? = nil
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
@@ -82,6 +83,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         registerNotificationCategories()
         ImageCacheMigrations.migrateKingfisherCacheIfNeeded()
         configureKingfisherCache()
+        
         return true
     }
     
