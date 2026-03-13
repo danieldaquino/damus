@@ -1,0 +1,3 @@
+[submodule "damus-wallet"]
+	path = damus-wallet
+	url = git@github.com:damus-io/damus-wallet.git
