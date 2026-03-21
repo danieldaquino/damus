@@ -1,5 +1,5 @@
 {
-  "originHash" : "c718c1e7dcc1a07671694b2d7d7311e11804fbbaf22f4b81e49523a3df816ad6",
+  "originHash" : "36d7b4aef1f0ceba54110197113cd0ce891d21ca1f5ca600c6791073d34a36dd",
   "pins" : [
     {
       "identity" : "codescanner",
@@ -78,6 +78,14 @@
       "state" : {
         "revision" : "42fe7d379b326583ae8282a5fd7232745f195906",
         "version" : "0.44.0"
+      }
+    },
+    {
+      "identity" : "orange-sdk",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/damus-io/orange-sdk",
+      "state" : {
+        "revision" : "2a3cf4b0b3a16e90f61c73d82599c35e3b8a8902"
       }
     },
     {

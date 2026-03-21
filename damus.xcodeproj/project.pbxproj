@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 55;
+	objectVersion = 60;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -1130,6 +1130,9 @@
 		D5C1AFD32E5EE2820092F72F /* FavoriteButtonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5C1AFD12E5EE2820092F72F /* FavoriteButtonView.swift */; };
 		D5C1AFD42E5EE2820092F72F /* FavoriteButtonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5C1AFD12E5EE2820092F72F /* FavoriteButtonView.swift */; };
 		D5C1AFD52E5EE2820092F72F /* FavoriteButtonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5C1AFD12E5EE2820092F72F /* FavoriteButtonView.swift */; };
+		D70311422F6E28AA000DEC05 /* DamusWallet in Frameworks */ = {isa = PBXBuildFile; productRef = D70311412F6E28AA000DEC05 /* DamusWallet */; };
+		D70311442F71C857000DEC05 /* DamusWallet in Frameworks */ = {isa = PBXBuildFile; productRef = D70311432F71C857000DEC05 /* DamusWallet */; };
+		D70311462F71CD98000DEC05 /* DamusWallet in Frameworks */ = {isa = PBXBuildFile; productRef = D70311452F71CD98000DEC05 /* DamusWallet */; };
 		D703D7192C66E47100A400EA /* UniformTypeIdentifiers.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D703D7182C66E47100A400EA /* UniformTypeIdentifiers.framework */; };
 		D703D71C2C66E47100A400EA /* Media.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D703D71B2C66E47100A400EA /* Media.xcassets */; };
 		D703D71E2C66E47100A400EA /* ActionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D703D71D2C66E47100A400EA /* ActionViewController.swift */; };
@@ -2981,6 +2984,7 @@
 				3ACF94382DA9A52F00971A4E /* FaviconFinder in Frameworks */,
 				4C06670428FC7EC500038D2A /* Kingfisher in Frameworks */,
 				D7DB1FE42D5A9AC900CF06DA /* CryptoSwift in Frameworks */,
+				D70311422F6E28AA000DEC05 /* DamusWallet in Frameworks */,
 				3A0A30BB2C21397A00F8C9BC /* EmojiPicker in Frameworks */,
 				D70D90982CDED61800CD0534 /* CodeScanner in Frameworks */,
 				D7C48C0B2D12DE0C00A3BACF /* SwiftyCrop in Frameworks */,
@@ -3015,6 +3019,7 @@
 				3ACF94402DA9B11200971A4E /* FaviconFinder in Frameworks */,
 				82D6FC862CD9A4A600C925F4 /* MarkdownUI in Frameworks */,
 				D7DB1FEC2D5A9F6500CF06DA /* CryptoSwift in Frameworks */,
+				D70311442F71C857000DEC05 /* DamusWallet in Frameworks */,
 				82D6FC8A2CD9A54600C925F4 /* SwipeActions in Frameworks */,
 				D7F360292CEBBE34009D34DA /* CodeScanner in Frameworks */,
 				D7C48C0D2D12E34900A3BACF /* SwiftyCrop in Frameworks */,
@@ -3031,6 +3036,7 @@
 			files = (
 				D703D7AF2C670FB700A400EA /* MarkdownUI in Frameworks */,
 				3ACF943E2DA9B10800971A4E /* FaviconFinder in Frameworks */,
+				D70311462F71CD98000DEC05 /* DamusWallet in Frameworks */,
 				D73E5F9D2C6AA8E3007EB227 /* SwipeActions in Frameworks */,
 				D7DB1FE82D5A9F5300CF06DA /* CryptoSwift in Frameworks */,
 				D73E5F762C6A997E007EB227 /* EmojiPicker in Frameworks */,
@@ -5510,6 +5516,7 @@
 				D7DB1FE32D5A9AC900CF06DA /* CryptoSwift */,
 				3ACF94372DA9A52F00971A4E /* FaviconFinder */,
 				D7E5B2DA2EA080BE00CF47AC /* Negentropy */,
+				D70311412F6E28AA000DEC05 /* DamusWallet */,
 			);
 			productName = damus;
 			productReference = 4CE6DEE327F7A08100C66700 /* damus.app */;
@@ -5580,6 +5587,7 @@
 				D7DB1FEB2D5A9F6500CF06DA /* CryptoSwift */,
 				3ACF943F2DA9B11200971A4E /* FaviconFinder */,
 				D7E5B2E22EA0A69900CF47AC /* Negentropy */,
+				D70311432F71C857000DEC05 /* DamusWallet */,
 			);
 			productName = "share extension";
 			productReference = 82D6FA972CD9820500C925F4 /* ShareExtension.appex */;
@@ -5611,6 +5619,7 @@
 				D7DB1FE72D5A9F5300CF06DA /* CryptoSwift */,
 				3ACF943D2DA9B10800971A4E /* FaviconFinder */,
 				D7E5B2E02EA0A69200CF47AC /* Negentropy */,
+				D70311452F71CD98000DEC05 /* DamusWallet */,
 			);
 			productName = "highlighter action extension";
 			productReference = D703D7172C66E47100A400EA /* HighlighterActionExtension.appex */;
@@ -5727,6 +5736,7 @@
 				3ACF94362DA9A52F00971A4E /* XCRemoteSwiftPackageReference "FaviconFinder" */,
 				D7E5B2D92EA080BE00CF47AC /* XCRemoteSwiftPackageReference "negentropy-swift" */,
 				D74723EA2F15B0C3002DA12A /* XCRemoteSwiftPackageReference "nostr-sdk-swift" */,
+				D70311402F6E28AA000DEC05 /* XCLocalSwiftPackageReference "DamusWallet" */,
 			);
 			productRefGroup = 4CE6DEE427F7A08100C66700 /* Products */;
 			projectDirPath = "";
@@ -8132,7 +8142,7 @@
 				INFOPLIST_KEY_UILaunchStoryboardName = Launch.storyboard;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -8186,7 +8196,7 @@
 				INFOPLIST_KEY_UILaunchStoryboardName = Launch.storyboard;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -8296,7 +8306,7 @@
 				INFOPLIST_FILE = "share extension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "share extension";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -8328,7 +8338,7 @@
 				INFOPLIST_FILE = "share extension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "share extension";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -8360,7 +8370,7 @@
 				INFOPLIST_FILE = "highlighter action extension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Highlight on Damus";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -8393,7 +8403,7 @@
 				INFOPLIST_FILE = "highlighter action extension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Highlight on Damus";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -8543,6 +8553,13 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		D70311402F6E28AA000DEC05 /* XCLocalSwiftPackageReference "DamusWallet" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = DamusWallet;
+		};
+/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
 		3A0A30B92C21397A00F8C9BC /* XCRemoteSwiftPackageReference "EmojiPicker" */ = {
@@ -8716,6 +8733,20 @@
 			isa = XCSwiftPackageProductDependency;
 			package = D78DB8572C1CE9CA00F0AB12 /* XCRemoteSwiftPackageReference "SwipeActions" */;
 			productName = SwipeActions;
+		};
+		D70311412F6E28AA000DEC05 /* DamusWallet */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DamusWallet;
+		};
+		D70311432F71C857000DEC05 /* DamusWallet */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D70311402F6E28AA000DEC05 /* XCLocalSwiftPackageReference "DamusWallet" */;
+			productName = DamusWallet;
+		};
+		D70311452F71CD98000DEC05 /* DamusWallet */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D70311402F6E28AA000DEC05 /* XCLocalSwiftPackageReference "DamusWallet" */;
+			productName = DamusWallet;
 		};
 		D703D7482C6709B100A400EA /* secp256k1 */ = {
 			isa = XCSwiftPackageProductDependency;
