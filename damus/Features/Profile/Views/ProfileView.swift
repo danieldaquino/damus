@@ -65,6 +65,49 @@ struct VisualEffectView: UIViewRepresentable {
     }
 }
 
+/// Observes safe-area inset changes from UIKit without introducing a SwiftUI layout container around the profile screen.
+struct SafeAreaInsetsReader: UIViewRepresentable {
+    let onChange: (UIEdgeInsets) -> Void
+
+    func makeUIView(context: Context) -> SafeAreaInsetsObserverView {
+        let view = SafeAreaInsetsObserverView()
+        view.onChange = onChange
+        return view
+    }
+
+    func updateUIView(_ uiView: SafeAreaInsetsObserverView, context: Context) {
+        uiView.onChange = onChange
+        uiView.publishSafeAreaInsetsIfNeeded()
+    }
+}
+
+/// A lightweight UIKit view that reports safe-area inset updates after layout, avoiding AttributeGraph preference cycles.
+final class SafeAreaInsetsObserverView: UIView {
+    var onChange: ((UIEdgeInsets) -> Void)?
+    private var lastInsets: UIEdgeInsets = .zero
+
+    override func safeAreaInsetsDidChange() {
+        super.safeAreaInsetsDidChange()
+        publishSafeAreaInsetsIfNeeded()
+    }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        publishSafeAreaInsetsIfNeeded()
+    }
+
+    func publishSafeAreaInsetsIfNeeded() {
+        let insets = safeAreaInsets
+
+        guard insets != lastInsets else {
+            return
+        }
+
+        lastInsets = insets
+        onChange?(insets)
+    }
+}
+
 struct ProfileView: View {
     let damus_state: DamusState
     let pfp_size: CGFloat = 90.0
@@ -77,6 +120,7 @@ struct ProfileView: View {
     @State var mute_dialog_presented: Bool = false
     @State var filter_state : FilterState = .posts
     @State var yOffset: CGFloat = 0
+    @State private var profileSafeAreaInsets: UIEdgeInsets = .zero
 
     @StateObject var profile: ProfileModel
     @StateObject var followers: FollowersModel
@@ -169,7 +213,7 @@ struct ProfileView: View {
         .allowsHitTesting(false)
     }
 
-    /// Computes the profile navigation height using the view's current safe-area context instead of querying the key window during SwiftUI updates.
+    /// Computes the profile navigation height using safe-area values captured from the profile view hierarchy.
     func navbarHeight(topSafeAreaInset: CGFloat) -> CGFloat {
         100.0 - topSafeAreaInset
     }
@@ -461,13 +505,14 @@ struct ProfileView: View {
     }
 
     var body: some View {
-        GeometryReader { geometry in
-            let safeAreaInsets = geometry.safeAreaInsets
-            let topSafeAreaInset = safeAreaInsets.top
-            let navbarHeight = navbarHeight(topSafeAreaInset: topSafeAreaInset)
-            let blurOpacity = bannerBlurViewOpacity(topSafeAreaInset: topSafeAreaInset)
+        let effectiveSafeAreaInsets = profileSafeAreaInsets == .zero ? safeArea() : profileSafeAreaInsets
+        let topSafeAreaInset = effectiveSafeAreaInsets.top
+        let bottomSafeAreaInset = effectiveSafeAreaInsets.bottom
+        let horizontalSafeAreaInset = max(effectiveSafeAreaInsets.left, effectiveSafeAreaInsets.right)
+        let navbarHeight = navbarHeight(topSafeAreaInset: topSafeAreaInset)
+        let blurOpacity = bannerBlurViewOpacity(topSafeAreaInset: topSafeAreaInset)
 
-            ZStack {
+        return ZStack {
                 ScrollView(.vertical) {
                     VStack(spacing: 0) {
                         bannerSection(topSafeAreaInset: topSafeAreaInset)
@@ -493,11 +538,11 @@ struct ProfileView: View {
                                 InnerTimelineView(events: profile.events, damus: damus_state, filter: content_filter(FilterState.conversations))
                             }
                         }
-                        .padding(.horizontal, safeAreaInsets.leading)
+                        .padding(.horizontal, horizontalSafeAreaInset)
                         .zIndex(-yOffset > navbarHeight ? 0 : 1)
                     }
                 }
-                .padding(.bottom, tabHeight + safeAreaInsets.bottom)
+                .padding(.bottom, tabHeight + bottomSafeAreaInset)
                 .ignoresSafeArea()
                 .navigationTitle("")
                 .navigationBarBackButtonHidden()
@@ -517,7 +562,6 @@ struct ProfileView: View {
                             }
                             .opacity(blurOpacity)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.top, max(5, 15 + (yOffset / 30)))
                         }
                     }
                     .hideToolbarBackground()
@@ -529,7 +573,7 @@ struct ProfileView: View {
                                 follows_you: profile.follows(pubkey: damus_state.pubkey),
                                 follow_state: damus_state.contacts.follow_state(profile.pubkey)
                             )
-                            .padding(.top, 8)
+                            .padding(.top, 5)
                         }
                         .hideToolbarBackground()
                     } else {
@@ -569,7 +613,16 @@ struct ProfileView: View {
                     }
                     .padding(.bottom, tabHeight)
                 }
+        }
+        .background {
+            SafeAreaInsetsReader { insets in
+                guard profileSafeAreaInsets != insets else {
+                    return
+                }
+
+                profileSafeAreaInsets = insets
             }
+            .allowsHitTesting(false)
         }
     }
 }
